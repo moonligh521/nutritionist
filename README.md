@@ -72,13 +72,6 @@ Java 包名是 `com.moonligh.nutritionist`。
 
 本项目提供的是饮食信息整理，不能替代营养师或医师的个体化医嘱。
 
-## 系列仓库
-
-- `registration-assistant`：导诊挂号助手
-- `report-interpreter`：报告解读
-- `case-analysis`：案情分析
-- `contract-review`：合同审查
-
 ## 参与贡献
 
 贡献方式见 [CONTRIBUTING.md](CONTRIBUTING.md)，行为准则见 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。安全问题见 [SECURITY.md](SECURITY.md)，请不要把漏洞细节写进公开 Issue。
