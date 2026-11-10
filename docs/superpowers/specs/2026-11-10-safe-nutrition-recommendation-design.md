@@ -484,23 +484,151 @@ Redis 丢失后必须能从 MySQL 重建。不能把 Redis 作为唯一饮食画
 
 ## 10. 开源复用
 
-### 10.1 可以作为依赖或实现参考
+### 10.1 复用原则
 
-- `ojAlgo`：MIT，第一版确定性 LP/MIP 求解器。
-- Timefold Solver Community：Apache-2.0，后续多餐多天优化。
-- OR-Tools：Apache-2.0，后续复杂整数约束。
-- `networknt/json-schema-validator`：Apache-2.0，独立 JSON Schema 校验。
-- JaVers：Apache-2.0，可辅助对象差分和审计快照。
-- HAPI FHIR：Apache-2.0，以后接医院时做适配层。
-- Spring AI 原生结构化输出：只负责格式和有限次数修复。
+本仓库使用 Apache-2.0。复用顺序是：
 
-### 10.2 只参考方案，不复制代码或数据
+1. 优先通过 Maven 使用正式发布的依赖；
+2. 其次参考接口和算法，自行编写领域代码；
+3. 只有小而稳定、来源清楚的工具类才复制源码；
+4. 临床规则、食谱和营养数据必须单独核对来源，不能跟随代码许可证推定；
+5. GPL、AGPL、O'Saasy、无许可证和来源不明材料不进入主仓库。
 
-- Acara Plate：参考画像、血糖记录和食谱结构；O'Saasy 代码不进入本仓库。
-- NutriChef：参考 `avoid`、`prefer`、`from/to/reason` 的替换结构；不复制印度食材和疾病建议。
-- metabolic-care-assistant：参考安全分流和测量记录；不使用其黑客松阈值和随机菜谱。
-- diabetes-food-guide-skill：参考知识分类；指南内容回到官方原文。
-- OpenNutriTracker、wger：参考餐次和记录体验；GPL/AGPL 代码不进入本仓库。
+许可证允许复制不等于技术上值得复制。复制 MIT 或 Apache-2.0 源码时仍需保留原版权、许可证和适用的 NOTICE。翻译成 Java、改名或修改结构，如果仍是实质性改写，也按衍生代码保留原许可证。
+
+### 10.2 直接作为依赖或外部工具
+
+| 项目 | 许可证 | 使用位置 | 复用方式 | 注意事项 |
+| --- | --- | --- | --- | --- |
+| [ojAlgo](https://github.com/optimatika/ojAlgo) | MIT | 第一版 LP/MIP 求解 | Maven 依赖；使用 `ExpressionsBasedModel`，不复制核心源码 | `develop` 分支已要求 Java 22；JDK 21 应锁定兼容的正式发布版，并做基准测试 |
+| [networknt/json-schema-validator](https://github.com/networknt/json-schema-validator) | Apache-2.0 | 模型 JSON Schema 校验 | Maven 依赖；使用 `SchemaRegistry` 等公开 API | 必须把其 NOTICE 中适用署名合并进发行物；验证 Jackson 3 与 Boot BOM 的版本收敛 |
+| [Testcontainers Java](https://github.com/testcontainers/testcontainers-java) | MIT | MySQL、Redis 集成测试 | 仅 test scope 依赖 | CI 必须提供 Docker 兼容运行时；保留 MIT 版权 |
+| [ZXing](https://github.com/zxing/zxing) | Apache-2.0 | 包装食品条码 | 使用 `core`、`javase` 依赖 | 项目处于维护模式，但核心条码解码稳定；不要复制 Android Scanner 应用 |
+| [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) | Apache-2.0 | 购物小票和包装文字 OCR | 独立 OCR 服务，不嵌入主业务进程 | 模型文件和第三方依赖要继续核对 NOTICE；OCR 结果仍需用户确认 |
+| [mica-ppocr](https://github.com/lets-mica/mica-ppocr) | Apache-2.0 | 纯 Java OCR 备选 | 先做兼容性实验，成功后再选 Spring Boot starter | 当前目标是 PP-OCRv6/ONNX；需实测 Boot 4、原生库体积和中文小票准确率 |
+| [Timefold Solver](https://github.com/TimefoldAI/timefold-solver) | Apache-2.0 | 后续多餐、多天、多样性优化 | 使用正式 BOM 和 starter | Java 21、Spring Boot 4 适配度高；第一版 ojAlgo 已够用，不同时引入两套求解器 |
+| [OR-Tools](https://github.com/google/or-tools) | Apache-2.0 | 复杂 CP-SAT 备选 | 后续依赖 | JNI、整数缩放和跨平台发布成本更高 |
+| [JaVers](https://github.com/javers/javers) | Apache-2.0 | 审计辅助 | 可选 SQL starter | 不能代替业务方案版本、幂等键和不可变事件；第一版可不引入 |
+| [HAPI FHIR](https://github.com/hapifhir/hapi-fhir) | Apache-2.0 | 以后接医院 | 只引入 `base`、目标 FHIR 结构和 validation 模块 | 保留 HAPI NOTICE；LOINC 等术语另有条款；发布版与 Boot 4/Jackson 需单测 |
+| [Synthea](https://github.com/synthetichealth/synthea) | Apache-2.0 | 生成合成患者数据 | 作为独立 CLI 工具运行 | 不嵌入 Boot 4；其 NOTICE 含 RxNorm、LOINC、SNOMED CT 等第三方条款 |
+
+第一版实际运行时计划只引入 ojAlgo 和 JSON Schema 校验器；Testcontainers 只进入测试。OCR、条码、Timefold、JaVers 和 HAPI FHIR 分阶段引入。
+
+### 10.3 许可证允许选择性复制且技术上有用
+
+#### sugardaddi
+
+[rmasciulli/sugardaddi](https://github.com/rmasciulli/sugardaddi) 使用 MIT 许可证。以下代码可以选择性复制并适配：
+
+- `core/utils/DensityConversion.java` 和 `DensityConversionTest.java`：克、毫升和每 100 克/毫升换算；
+- `Nutrition`、`ServingSize`、`Unit`、`NutritionBasis`、`DataConfidence`：区分未知值与确认的 0，并保留测量基准和置信度；
+- `USDAMapper.java`：USDA 营养素 ID 和单位映射思路。
+
+处理方式：
+
+- 如果原样或实质性改写，固定来源 commit，保留 Romain Masciulli 的 MIT 版权和完整许可；
+- Android Room 的 `NutritionEntity` 不能原样搬入 Spring/JPA；
+- `OpenFoodFactsMapper` 只能复用代码，不能因此把 ODbL 数据改成 MIT；
+- `EUDietaryReferenceValues` 只适合欧盟标签，不作为中国用户的个体化目标；
+- 密度值必须有来源，不能因为有换算函数就猜测食物密度。
+
+这组是目前最接近“可以照抄的小段代码”。即使如此，如果最终只需要几十行换算，优先自行实现并用相同测试思想验证，可减少第三方许可维护。
+
+#### EveryDay_Food
+
+[Jiayu-zheng1/EveryDay_Food](https://github.com/Jiayu-zheng1/EveryDay_Food) 使用 MIT 许可证。适合翻译并改写：
+
+- `src/lib/shoppingList.ts` 及测试：中文数量、分数、「半」、单位和购物清单合并；
+- `src/types.ts` 的 `Meal`、`Nutrition`、`ServingSize`、`PlanSlot` 结构；
+- `src/lib/nutrition.ts` 的跨餐去重、组合数量上限和降级策略；
+- `familyTable.ts` 的持久化版本字段。
+
+不能使用：
+
+- 1077/1093 道食谱和营养数字，来源不可核验；
+- `TDEE-500`、固定 40% 蛋白质等无来源临床默认；
+- 经验单位校准表用于营养计算；
+- 食疗功效文字。
+
+Java 改写如果保留原算法结构，仍保存 Jiayu Zheng 的 MIT 许可证和固定 commit。
+
+#### Timefold quickstarts
+
+[Timefold quickstarts](https://github.com/TimefoldAI/timefold-quickstarts) 使用 Apache-2.0。后续引入 Timefold 时可以复制并修改：
+
+- `getting-started/spring-boot-integration` 的项目接线；
+- `bed-allocation` 的 pinning 和允许未分配思路；
+- `employee-scheduling` 的负载平衡；
+- 约束 justification 的输出方式。
+
+复制文件时保留 Timefold、Red Hat、OptaPlanner 的原始文件头并注明修改。没有官方营养配餐示例，不能把 `food-packaging` 误认为食谱示例。
+
+### 10.4 只参考设计，不复制代码和内容
+
+| 项目 | 可以参考 | 不能采用 |
+| --- | --- | --- |
+| [NutriChef](https://github.com/Hima-Mehta/NutriChef)（MIT） | `avoid`、`prefer`、`from/to/reason` 结构；RAG 条目 `{id,text,metadata}`；库存做菜交互 | `knowledge_base.json` 的无来源健康断言、印度食材、GI 和节省热量数字、直接由 RAG 生成配餐 |
+| [metabolic-care-assistant](https://github.com/umer1556/metabolic-care-assistant)（MIT） | `profiles/glucose_logs/daily_checkins` 分表；安全等级与提示分离；候选标签过滤顺序 | `config.py` 临床阈值、`carb_servings × 15g`、14 道菜和随机选餐 |
+| [diabetes-food-guide-skill](https://github.com/runyuan-wang/diabetes-food-guide-skill)（MIT） | KPK 编号、原则/交换表/食谱/禁忌分层 | Markdown 正文和 84 套食谱；规则必须从卫健委原文重新建立 |
+| [SimT2D.jl](https://github.com/everval/SimT2D.jl)（MIT） | 时间序列与事件日志字段设计 | 当前模拟参数和 CSV；存在无来源概率、随机种子未贯穿和血糖单位冲突 |
+| [Acara Plate](https://github.com/acara-app/plate)（O'Saasy） | 画像、血糖日志、营养计划和 AI 工具的模块边界 | 任何 PHP 源码、模板或实质性表达 |
+| [OpenNutriTracker](https://github.com/simonoppowa/OpenNutriTracker)（GPL-3.0） | 早餐/午餐/晚餐/加餐体验和微量营养展示 | App、Backend、SQL、导入器和测试代码 |
+| [wger](https://github.com/wger-project/wger)（AGPL-3.0） | 饮食记录和独立服务/API 模式 | 源码、模板和内置数据 |
+
+### 10.5 不使用
+
+- [team-gigabyte/meal-planner](https://github.com/team-gigabyte/meal-planner)：虽为 MIT，但 `violates_limits()` 未完成，营养评分无来源，GI 实现带未解决疑问，食谱受 Edamam 条款约束。
+- [vishnupriyanpr/Verve](https://github.com/vishnupriyanpr/Verve)：虽为 MIT，但营养值不可信，宏量营养和食谱由模型直接生成，无成分表复算。
+- [michiella/macros-tracker](https://github.com/michiella/macros-tracker)：没有许可证，代码默认保留全部权利。
+- [polonnia/Diabetes-Recipe-Recommender](https://github.com/Polonnia/Diabetes-Recipe-Recommender)：没有许可证，食谱数据授权不明。
+- [wangtianrui/NutritionMaster](https://github.com/wangtianrui/NutritionMaster)：没有许可证，数据来自薄荷和多个菜谱网站。
+- [Sanotsu/china-food-composition-data](https://github.com/Sanotsu/china-food-composition-data)：无可复用许可证，截图和结构化数据来自《中国食物成分表》。
+- [ruffood/cn-food-mcp](https://github.com/ruffood/cn-food-mcp)：代码的 MIT 表述不完整，提交的 CSV 无清晰授权链；代码和数据都不进入主仓库。
+
+### 10.6 拍照、OCR 和条码
+
+拍照输入分三条路径：
+
+1. 包装食品先用 ZXing 识别条码，再查询已授权的产品数据；
+2. 购物小票和包装文字用 PaddleOCR 或经过验证的 Java OCR 组件；
+3. 冰箱或散装食材照片交给多模态模型生成候选。
+
+开源食物视觉项目只能作研究参考：
+
+- [FoodSeg103 Benchmark](https://github.com/LARC-CMU-SMU/FoodSeg103-Benchmark-v1) 代码为 Apache-2.0，可参考食物分割和多标签输出；
+- RecipeNet、FoodNet、Inverse Cooking 等代码虽多为 MIT，但训练数据、预训练权重、菜谱链接和营养数据要分别核对；
+- FoodSeg103 只有约 104 类，其他项目多基于西式食谱，不能覆盖中国家庭库存；
+- 图片无法可靠给出克数、生熟状态和剩余库存。
+
+第一版不复制或训练这些视觉模型。多模态识别只创建 `recognition_draft`，所有食材和数量必须由用户确认。
+
+### 10.7 数据复用
+
+| 数据 | 能否随仓库发布 | 用法 |
+| --- | --- | --- |
+| USDA FoodData Central | 可以，CC0 | 选择少量 Foundation/SR Legacy 记录；保存 `fdcId`、版本和来源 |
+| FHIR 官方示例 | 可以，FHIR 规范材料 CC0 | 作为 Observation 等接口夹具；术语代码另核对条款 |
+| SMART Bulk FHIR 合成数据 | 可以，仓库明确数据按 CC0 | 截取少量 Synthea 生成记录作导入测试 |
+| 自己生成的合成业务场景 | 可以，按本仓库 Apache-2.0 | 作为主要规则和状态测试数据 |
+| Synthea 生成记录 | 可以使用，但逐项检查术语 NOTICE | 压力、导入和版本测试；不当临床真值 |
+| NHANES public-use | 不提交个体行；仅离线统计 | 遵守 NCHS 仅统计分析、禁止重识别和链接的协议 |
+| Open Food Facts | 不混入主数据库 | ODbL 数据、CC BY-SA 图片分库存储并署名；第一版不用 |
+| 《中国食物成分表》OCR/CSV | 不可以 | 取得权利人书面授权前排除 |
+| 第三方食谱仓库 | 不可以，除非逐条证明来源 | 代码 MIT 不代表食谱和营养值也是 MIT |
+
+### 10.8 许可证落地
+
+如果实际复制或翻译第三方源码：
+
+1. 在 `THIRD-PARTY-LICENSES/` 保存每个项目完整许可证；
+2. 在复制文件头写原项目、固定 commit、原作者和修改说明；
+3. 把 Apache 项目的适用 NOTICE 合并到根 `NOTICE`；
+4. MIT 代码的完整版权与许可不能只用一行 NOTICE 代替；
+5. 建立 `docs/third-party-provenance.md`，记录项目、commit、原路径、本地路径、许可证、用途和修改；
+6. 外部 API 数据、模型权重、训练数据、图片和代码分别审核；
+7. 没有证据时按「不可复制」处理。
+
+本节是工程合规策略，不替代针对具体发行方式的正式法律意见。
 
 ## 11. 测试数据
 
@@ -587,14 +715,13 @@ Synthea 软件是 Apache-2.0，生成数据没有真实患者隐私限制。可�
 
 #### SimT2D
 
-`everval/SimT2D.jl` 使用 MIT 许可证，可生成带餐食、运动和异常事件的 2 型糖尿病 CGM 序列。适合测试趋势识别和五态决策。
+`everval/SimT2D.jl` 使用 MIT 许可证，但当前实现不作为测试数据生成器：
 
-它是研究型模拟器，不能用来验证临床阈值。若使用生成数据：
+- 多个事件概率和生理参数没有文献来源；
+- 随机种子没有贯穿主要随机过程，难以稳定复现；
+- 代码字段与仓库 CSV 的血糖单位存在冲突。
 
-- 固定随机种子；
-- 记录生成器版本；
-- 只提交小型生成结果；
-- 在夹具头部写明 synthetic、research-only。
+只参考「时间序列 + 餐食/运动/用药事件日志」的数据结构。五态决策使用本仓库自己编写、固定种子且逐条标明预期状态的合成序列。
 
 #### GluFormer
 
