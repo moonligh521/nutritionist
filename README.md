@@ -46,12 +46,14 @@
 ## 目录
 
 ```text
-src/main/java/com/moonligh/nutritionist/
-src/main/resources/
-src/test/java/com/moonligh/nutritionist/
+nutritionist-api/
+nutritionist-service/
+  src/main/java/com/moonligh/nutritionist/
+  src/main/resources/
+  src/test/java/com/moonligh/nutritionist/
 ```
 
-Java 包名是 `com.moonligh.nutritionist`。
+Java 包名是 `com.moonligh.nutritionist`。本地需 JDK 21，验证命令：`mvn -B verify`。
 
 ## 数据
 
