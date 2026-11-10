@@ -7,3 +7,20 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+consult:
+  auth:
+    jwt-secret: consult-dev-jwt-secret-key-32bytes!
+    open-paths:
+      - /actuator/health
+    open-path-prefixes: []
+    staff-only-prefixes: []
+
+nutritionist:
+  identity:
+    mode: fake
+  security:
+    dev-principal:
+      enabled: true
+      account-id: test-account
+

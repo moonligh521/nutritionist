@@ -14,7 +14,8 @@
 
 账号、JWT、患者基础资料属于同产品体系的 `registration-assistant`。nutritionist 只保存患者引用和营养业务事实，不要在本仓库复制一套患者管理。
 
-统一返回、通用错误码、异常与 traceId 使用独立仓 `moonligh-platform` 的 `platform-common`，不要在本仓库再实现一套。业务仓之间不要互相依赖 jar；与挂号的协作走接口，不依赖挂号 jar。
+统一返回、通用错误码、异常、traceId、账号头鉴权使用独立仓 `moonligh-platform` 的 `platform-common` / `platform-security`，不要在本仓库再实现一套。网关限流与 JWT 验签复用挂号入口上的 `platform-gateway`，本仓只做业务服务。业务仓之间不要互相依赖 jar；与挂号的协作走接口，不依赖挂号 jar。
+
 
 ## 开发约定
 

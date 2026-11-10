@@ -13,12 +13,29 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+consult:
+  auth:
+    jwt-secret: consult-dev-jwt-secret-key-32bytes!
+    jwt-ttl-hours: 168
+    # 营养服务无登录接口；只放行健康检查
+    open-paths:
+      - /actuator/health
+    open-path-prefixes: []
+    staff-only-prefixes: []
+
 nutritionist:
   identity:
     mode: fake
-    base-url: http://127.0.0.1:18081
+    base-url: http://127.0.0.1:18082
+  security:
+    # 本地直连服务时注入测试账号；经网关或生产必须关闭
+    dev-principal:
+      enabled: true
+      account-id: dev-account
+      role: patient
 
 management:
+
   endpoints:
     web:
       exposure:
