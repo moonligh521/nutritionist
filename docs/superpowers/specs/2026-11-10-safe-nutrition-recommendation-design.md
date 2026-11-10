@@ -349,6 +349,42 @@ Spring AI 只负责：
 
 未经完整校验的食谱不能通过 SSE 流给用户。SSE 可以先发送处理阶段，最后发送通过校验的完整结果。
 
+### 5.1 SSE 只做最外层 WebFlux 封装
+
+应用主体使用同步 Java。只在接口适配层使用 Reactor/WebFlux 类型封装 SSE：
+
+```text
+RecommendationSseController
+    -> Flux<ServerSentEvent<RecommendationEvent>>
+        -> RecommendationApplicationService (普通 Java)
+            -> RecommendationProgressSink (普通 Java 回调接口)
+```
+
+技术约束：
+
+- 主 Web 运行时沿用挂号项目的 `spring-boot-starter-web`；
+- 额外引入 `spring-webflux` 模块，只用于 `Flux` 和 `ServerSentEvent` 外层适配；
+- 不引入 `spring-boot-starter-webflux`，避免把整个应用切换为响应式运行时；
+- Controller 和 SSE adapter 之外不出现 `Mono`、`Flux` 或 Reactor `Context`；
+- 数据库继续使用 Spring JDBC，不使用 R2DBC；
+- Redis 继续使用 `StringRedisTemplate`/Redisson，不使用 Reactive Redis；
+- Spring AI、规则、求解和校验都暴露普通同步 Java 接口；
+- 耗时任务交给 Java 21 虚拟线程执行器，不能阻塞请求线程；
+- 客户端取消订阅时设置取消标记，应用服务在阶段边界检查并停止后续模型调用；
+- 中间事件只报告阶段和可公开进度，最终通过校验后才发送完整方案。
+
+SSE 事件固定为：
+
+- `STARTED`；
+- `VALIDATING`；
+- `SOLVING`；
+- `GENERATING_EXPLANATION`；
+- `COMPLETED`；
+- `FAILED`；
+- 可选 `HEARTBEAT`。
+
+`COMPLETED` 事件必须只有一次。`FAILED` 只返回稳定错误码和可公开信息，不能泄露提示词、堆栈、模型原始响应或健康隐私。
+
 ## 6. 状态、长上下文和差分
 
 ### 6.1 不保存文本长记忆
@@ -486,15 +522,16 @@ Redis 丢失后必须能从 MySQL 重建。不能把 Redis 作为唯一饮食画
 
 ### 10.1 复用原则
 
-本仓库使用 Apache-2.0。复用顺序是：
+本项目采用「业务源码全部自研、全部在本仓库开源」的原则：
 
-1. 优先通过 Maven 使用正式发布的依赖；
-2. 其次参考接口和算法，自行编写领域代码；
-3. 只有小而稳定、来源清楚的工具类才复制源码；
-4. 临床规则、食谱和营养数据必须单独核对来源，不能跟随代码许可证推定；
-5. GPL、AGPL、O'Saasy、无许可证和来源不明材料不进入主仓库。
+1. 所有领域模型、规则引擎、求解编排、状态管理、接口、适配器、测试和构建配置都由本项目自行实现；
+2. 不复制、翻译、移植或实质性改写其他开源项目的业务源码和测试源码，即使其许可证允许；
+3. 第三方项目只用于研究产品场景、模块边界、数据结构和测试思想，最终实现必须从本项目需求独立设计；
+4. 通用能力优先通过 Maven 使用正式发布的第三方依赖，不把依赖源码复制进仓库；
+5. 临床规则、食谱和营养数据必须独立核对来源，不能跟随代码许可证推定；
+6. GPL、AGPL、O'Saasy、无许可证和来源不明材料不进入主仓库。
 
-许可证允许复制不等于技术上值得复制。复制 MIT 或 Apache-2.0 源码时仍需保留原版权、许可证和适用的 NOTICE。翻译成 Java、改名或修改结构，如果仍是实质性改写，也按衍生代码保留原许可证。
+本仓库是产品实现的唯一源码仓库，不保留私有业务模块或仅在本地存在的核心实现。可提交的 Java 源码、测试、数据库迁移、配置模板、提示词模板和构建文件全部公开。密钥、真实用户健康数据、受限数据集、模型权重、运行日志和构建产物不得提交；这不属于隐藏业务源码。
 
 ### 10.2 直接作为依赖或外部工具
 
@@ -514,11 +551,11 @@ Redis 丢失后必须能从 MySQL 重建。不能把 Redis 作为唯一饮食画
 
 第一版实际运行时计划只引入 ojAlgo、JSON Schema 校验器和 ZXing；Testcontainers 只进入测试。OCR、Timefold、JaVers 和 HAPI FHIR 分阶段引入。
 
-### 10.3 许可证允许选择性复制且技术上有用
+### 10.3 可参考的实现设计，禁止复制源码
 
 #### sugardaddi
 
-[rmasciulli/sugardaddi](https://github.com/rmasciulli/sugardaddi) 使用 MIT 许可证。以下代码可以选择性复制并适配：
+[rmasciulli/sugardaddi](https://github.com/rmasciulli/sugardaddi) 使用 MIT 许可证。以下内容只作为需求和测试思想参考：
 
 - `core/utils/DensityConversion.java` 和 `DensityConversionTest.java`：克、毫升和每 100 克/毫升换算；
 - `Nutrition`、`ServingSize`、`Unit`、`NutritionBasis`、`DataConfidence`：区分未知值与确认的 0，并保留测量基准和置信度；
@@ -526,17 +563,17 @@ Redis 丢失后必须能从 MySQL 重建。不能把 Redis 作为唯一饮食画
 
 处理方式：
 
-- 如果原样或实质性改写，固定来源 commit，保留 Romain Masciulli 的 MIT 版权和完整许可；
-- Android Room 的 `NutritionEntity` 不能原样搬入 Spring/JPA；
-- `OpenFoodFactsMapper` 只能复用代码，不能因此把 ODbL 数据改成 MIT；
+- 不复制或翻译上述 Java 文件，本项目根据自己的领域模型独立实现；
+- Android Room 的 `NutritionEntity` 不进入 Spring JDBC 领域模型；
+- `OpenFoodFactsMapper` 不复用，且其代码许可证不能改变 ODbL 数据的许可；
 - `EUDietaryReferenceValues` 只适合欧盟标签，不作为中国用户的个体化目标；
 - 密度值必须有来源，不能因为有换算函数就猜测食物密度。
 
-这组是目前最接近“可以照抄的小段代码”。即使如此，如果最终只需要几十行换算，优先自行实现并用相同测试思想验证，可减少第三方许可维护。
+本项目可以覆盖相同的换算场景，但测试输入、接口和实现均自行编写。
 
 #### EveryDay_Food
 
-[Jiayu-zheng1/EveryDay_Food](https://github.com/Jiayu-zheng1/EveryDay_Food) 使用 MIT 许可证。适合翻译并改写：
+[Jiayu-zheng1/EveryDay_Food](https://github.com/Jiayu-zheng1/EveryDay_Food) 使用 MIT 许可证。以下内容只用于梳理需求：
 
 - `src/lib/shoppingList.ts` 及测试：中文数量、分数、「半」、单位和购物清单合并；
 - `src/types.ts` 的 `Meal`、`Nutrition`、`ServingSize`、`PlanSlot` 结构；
@@ -550,18 +587,18 @@ Redis 丢失后必须能从 MySQL 重建。不能把 Redis 作为唯一饮食画
 - 经验单位校准表用于营养计算；
 - 食疗功效文字。
 
-Java 改写如果保留原算法结构，仍保存 Jiayu Zheng 的 MIT 许可证和固定 commit。
+Java 实现不得翻译或保留其算法表达结构，只根据本项目确认的输入、输出和测试场景独立设计。
 
 #### Timefold quickstarts
 
-[Timefold quickstarts](https://github.com/TimefoldAI/timefold-quickstarts) 使用 Apache-2.0。后续引入 Timefold 时可以复制并修改：
+[Timefold quickstarts](https://github.com/TimefoldAI/timefold-quickstarts) 使用 Apache-2.0。后续引入 Timefold 时可以研究：
 
 - `getting-started/spring-boot-integration` 的项目接线；
 - `bed-allocation` 的 pinning 和允许未分配思路；
 - `employee-scheduling` 的负载平衡；
 - 约束 justification 的输出方式。
 
-复制文件时保留 Timefold、Red Hat、OptaPlanner 的原始文件头并注明修改。没有官方营养配餐示例，不能把 `food-packaging` 误认为食谱示例。
+本项目不复制 quickstart 文件，只通过 Timefold 的公开 API 自行接线。没有官方营养配餐示例，不能把 `food-packaging` 误认为食谱示例。
 
 ### 10.4 只参考设计，不复制代码和内容
 
@@ -616,19 +653,14 @@ Java 改写如果保留原算法结构，仍保存 Jiayu Zheng 的 MIT 许可证
 | 《中国食物成分表》OCR/CSV | 不可以 | 取得权利人书面授权前排除 |
 | 第三方食谱仓库 | 不可以，除非逐条证明来源 | 代码 MIT 不代表食谱和营养值也是 MIT |
 
-### 10.8 许可证落地
+### 10.8 依赖和数据许可证落地
 
-如果实际复制或翻译第三方源码：
-
-1. 在 `THIRD-PARTY-LICENSES/` 保存每个项目完整许可证；
-2. 在复制文件头写原项目、固定 commit、原作者和修改说明；
-3. 把 Apache 项目的适用 NOTICE 合并到根 `NOTICE`；
-4. MIT 代码的完整版权与许可不能只用一行 NOTICE 代替；
-5. 建立 `docs/third-party-provenance.md`，记录项目、commit、原路径、本地路径、许可证、用途和修改；
-6. 外部 API 数据、模型权重、训练数据、图片和代码分别审核；
-7. 没有证据时按「不可复制」处理。
-
-即使只通过 Maven 使用依赖，也要生成第三方依赖清单、许可证清单和 SBOM，并把依赖要求的 NOTICE 随发行物提供。
+1. CI 检查仓库中不得出现复制、翻译或实质性改写的第三方源码；
+2. Maven 依赖生成第三方依赖清单、许可证清单和 SBOM；
+3. 把依赖要求的 NOTICE 随发行物提供；
+4. 建立 `docs/third-party-provenance.md`，记录依赖、外部工具、数据集、模型和研究参考项目的名称、版本、许可证及用途；
+5. 外部 API 数据、模型权重、训练数据、图片和代码分别审核；
+6. 没有明确授权证据的数据和内容不得提交或随发行物分发。
 
 本节是工程合规策略，不替代针对具体发行方式的正式法律意见。
 
@@ -875,6 +907,14 @@ src/test/resources/fixtures/
 - SSE 最终结果；
 - 模型失败回退。
 
+SSE 契约测试必须验证：
+
+- 事件顺序合法且 `COMPLETED` 恰好一次；
+- 完整校验前不会发送方案正文；
+- 客户端取消后不再发起后续模型调用；
+- `FAILED` 不泄露提示词、堆栈、模型原始响应或健康隐私；
+- 慢客户端不会无限占用内存，`HEARTBEAT` 不影响最终结果。
+
 第一版没有 RocketMQ 集成测试。
 
 ### 12.7 不可破坏的验收条件
@@ -967,14 +1007,22 @@ src/test/resources/fixtures/
 
 ## 15. 运行时
 
+- 语言：Java，不使用 Kotlin；
+- 项目版本：`0.1.0-SNAPSHOT`；
 - JDK 21；
 - Spring Boot 4.1.1；
 - Spring AI 2.0.1；
-- MySQL 8.0.46；
-- Redis 8.2.10，可选缓存；
-- RocketMQ 5.5.1，第一版不接主链路；
+- MySQL 8.4，与挂号项目 compose 对齐；
+- Redis 7，与挂号项目 compose 对齐；
+- RocketMQ 5.3.2，与挂号项目 compose 对齐；第一版不接主链路；
+- rocketmq-spring 2.3.6，后续接 MQ 时使用；
+- Redisson 4.3.0；
+- Resilience4j 2.3.0；
+- XXL-JOB 3.4.2，需要定时任务时再引入；
 - Maven；
 - `com.moonligh.nutritionist`。
+
+共享组件版本以后跟随挂号项目调整，不在 nutritionist 单独升级。Spring AI、ojAlgo、JSON Schema Validator 和 ZXing 属于 nutritionist 专用依赖，单独验证并锁定。
 
 ## 16. 决策摘要
 
@@ -1010,7 +1058,7 @@ src/test/resources/fixtures/
 采用模块化单体，不拆微服务：
 
 ```text
-HTTP / SSE
+Spring MVC HTTP / SSE adapter
     |
 application orchestration
     |
@@ -1033,6 +1081,7 @@ MySQL (事实源) + Redis (可丢失缓存)
 
 - 当前只有一个产品和一个代码仓库，微服务会放大事务、版本和部署成本；
 - 规则、求解、校验必须在同一个一致性边界内完成；
+- SSE 只在最外层适配器使用 `Flux<ServerSentEvent<?>>`，内部保持同步 Java；
 - 模块接口先固定，确有独立扩缩容需求时再拆；
 - RocketMQ 保留在技术路线中，但第一版不参与主链路。
 
@@ -1041,8 +1090,9 @@ MySQL (事实源) + Redis (可丢失缓存)
 生产依赖：
 
 - Spring Web：HTTP 和 SSE；
+- Spring WebFlux 模块：只给最外层 SSE adapter 提供 `Flux`/`ServerSentEvent`，不使用 WebFlux starter；
 - Spring Validation：请求校验；
-- Spring Data JPA：MySQL；
+- Spring JDBC：MySQL，和挂号服务一致；
 - Spring Data Redis：可选缓存和短期锁；
 - Spring AI：多模态候选识别、固定 JSON、做法和说明；
 - ojAlgo：食材克数和份量档位求解；
@@ -1075,7 +1125,7 @@ MySQL (事实源) + Redis (可丢失缓存)
 
 ### 17.3 开源复用决定
 
-第一版推荐不复制任何第三方业务源码，只使用正式依赖和合法测试数据。
+所有阶段都不复制任何第三方业务源码。产品业务代码、测试和构建配置全部自研，并全部开源在本仓库；只使用正式依赖和合法数据。
 
 具体决定：
 
@@ -1087,7 +1137,7 @@ MySQL (事实源) + Redis (可丢失缓存)
 - NutriChef、metabolic-care-assistant 和 diabetes-food-guide-skill 只参考信息结构；
 - 其他受限或无许可证项目不进入仓库。
 
-这样可以避免第一版维护第三方复制源码和对应文件头。Maven 依赖仍生成第三方许可证清单和 SBOM，并按第 10.8 节处理 NOTICE；以后确实复制代码时，再增加 `THIRD-PARTY-LICENSES` 和来源文件头。
+这是一条长期边界，不是第一版的临时取舍。以后增加病种、求解器、识别能力或数据适配时仍执行同一原则，不通过复制源码缩短开发。Maven 依赖继续生成第三方许可证清单和 SBOM，并按第 10.8 节处理 NOTICE。
 
 ### 17.4 推荐主链路
 
@@ -1104,7 +1154,7 @@ MySQL (事实源) + Redis (可丢失缓存)
 9. Java 按同版成分数据重新计算并校验。
 10. Spring AI 只能对固定食材和克数生成做法和说明。
 11. JSON Schema、领域校验和营养复算再次检查模型输出。
-12. 通过 SSE 返回最终方案；用户确认后生成不可变方案版本。
+12. 最外层 SSE adapter 把普通 Java 进度回调封装成 `Flux<ServerSentEvent<?>>` 并返回最终方案。
 13. 方案确定后再追加指南出处或回答食物问答。
 
 任何一步失败都不能降级成模型自由生成。
