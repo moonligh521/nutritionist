@@ -12,5 +12,6 @@
 ### Changed
 
 - 确定运行时为 JDK 21、Spring Boot 4.1.1、Spring AI 2.0.1、MySQL 8.0.46、Redis 8.2.10、RocketMQ 5.5.1。
-- 分支规范对齐挂号服务的 `feature-V主.次-年月日` 体系，版本从 `0.1.0-SNAPSHOT` 开始。
+- 分支规范对齐挂号服务的 `feature-V主.次-年月日` 体系，默认分支使用 `master`，版本从 `0.1.0-SNAPSHOT` 开始。
+- 明确 P0～P5 阶段门禁：每阶段须完成本阶段独立验收与累计验收后方可进入下一阶段。
 - 明确账号与患者主数据归属 `registration-assistant`，nutritionist 只保存引用与营养业务事实。
