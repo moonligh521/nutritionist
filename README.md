@@ -19,8 +19,7 @@
 - 产品基线：[`docs/superpowers/specs/2026-11-10-慢病与减重食材推荐系统设计.md`](docs/superpowers/specs/2026-11-10-慢病与减重食材推荐系统设计.md)
 - 施工方案：[`docs/superpowers/plans/2026-11-10-V0.1分阶段施工方案.md`](docs/superpowers/plans/2026-11-10-V0.1分阶段施工方案.md)
 
-账号、患者基础资料和网关鉴权与同产品体系的 `registration-assistant` 共享；本仓库只保存患者引用和营养业务事实。
-
+账号、患者基础资料和网关鉴权与同产品体系的 `registration-assistant` 协作；统一返回等脚手架依赖独立仓 `moonligh-platform`。本仓库只保存患者引用和营养业务事实。
 ## 功能范围
 
 - 慢病与减重场景的安全准入、营养目标与餐次额度

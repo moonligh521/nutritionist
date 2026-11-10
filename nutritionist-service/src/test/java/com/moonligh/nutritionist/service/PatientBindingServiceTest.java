@@ -3,8 +3,8 @@ package com.moonligh.nutritionist.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.moonligh.nutritionist.common.BusinessException;
-import com.moonligh.nutritionist.common.ErrorCode;
+import com.moonligh.consult.framework.BusinessException;
+import com.moonligh.consult.framework.ErrorCode;
 import com.moonligh.nutritionist.domain.profile.PatientRef;
 import com.moonligh.nutritionist.infrastructure.identity.FakePatientGateway;
 import com.moonligh.nutritionist.infrastructure.persistence.InMemoryPatientBindingStore;

@@ -4,8 +4,8 @@ import java.time.Instant;
 
 import org.springframework.stereotype.Service;
 
-import com.moonligh.nutritionist.common.BusinessException;
-import com.moonligh.nutritionist.common.ErrorCode;
+import com.moonligh.consult.framework.BusinessException;
+import com.moonligh.consult.framework.ErrorCode;
 import com.moonligh.nutritionist.domain.profile.PatientBindingStore;
 import com.moonligh.nutritionist.domain.profile.PatientGateway;
 import com.moonligh.nutritionist.domain.profile.PatientRef;

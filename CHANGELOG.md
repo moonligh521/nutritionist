@@ -8,7 +8,9 @@
 
 - 建立 `nutritionist` 的仓库骨架、社区文件和 Apache-2.0 许可证。
 - 增加 V1.5 产品设计基线与 V0.1 分阶段施工方案，覆盖字段级 API、幂等、事务、容量和跨仓患者边界。
-- 完成 P0：Maven 双模块骨架、统一 Result/错误码/traceId、Flyway 幂等与审计表、患者绑定端口、CI 与分支名检查。
+- 完成 P0：Maven 双模块骨架、Flyway 幂等与审计表、患者绑定端口、CI 与分支名检查。
+- 统一返回改为依赖独立仓 `moonligh-platform` 的 `platform-common`，删除本仓重复的 Result/错误码/TraceId 实现；营养错误码并入平台共享 `ErrorCode`。
+
 
 ### Changed
 
