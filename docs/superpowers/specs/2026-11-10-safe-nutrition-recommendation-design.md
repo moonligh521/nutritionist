@@ -512,7 +512,7 @@ Redis 丢失后必须能从 MySQL 重建。不能把 Redis 作为唯一饮食画
 | [HAPI FHIR](https://github.com/hapifhir/hapi-fhir) | Apache-2.0 | 以后接医院 | 只引入 `base`、目标 FHIR 结构和 validation 模块 | 保留 HAPI NOTICE；LOINC 等术语另有条款；发布版与 Boot 4/Jackson 需单测 |
 | [Synthea](https://github.com/synthetichealth/synthea) | Apache-2.0 | 生成合成患者数据 | 作为独立 CLI 工具运行 | 不嵌入 Boot 4；其 NOTICE 含 RxNorm、LOINC、SNOMED CT 等第三方条款 |
 
-第一版实际运行时计划只引入 ojAlgo 和 JSON Schema 校验器；Testcontainers 只进入测试。OCR、条码、Timefold、JaVers 和 HAPI FHIR 分阶段引入。
+第一版实际运行时计划只引入 ojAlgo、JSON Schema 校验器和 ZXing；Testcontainers 只进入测试。OCR、Timefold、JaVers 和 HAPI FHIR 分阶段引入。
 
 ### 10.3 许可证允许选择性复制且技术上有用
 
@@ -627,6 +627,8 @@ Java 改写如果保留原算法结构，仍保存 Jiayu Zheng 的 MIT 许可证
 5. 建立 `docs/third-party-provenance.md`，记录项目、commit、原路径、本地路径、许可证、用途和修改；
 6. 外部 API 数据、模型权重、训练数据、图片和代码分别审核；
 7. 没有证据时按「不可复制」处理。
+
+即使只通过 Maven 使用依赖，也要生成第三方依赖清单、许可证清单和 SBOM，并把依赖要求的 NOTICE 随发行物提供。
 
 本节是工程合规策略，不替代针对具体发行方式的正式法律意见。
 
@@ -999,7 +1001,231 @@ src/test/resources/fixtures/
 - RocketMQ 推迟到确有异步需求；
 - 药物、急症和营养不良安全能力前置。
 
-## 17. 主要来源
+## 17. 推荐实施方案
+
+本节把前面的选择收敛成第一版唯一实施方案。未列入的候选技术不进入第一版。
+
+### 17.1 架构形态
+
+采用模块化单体，不拆微服务：
+
+```text
+HTTP / SSE
+    |
+application orchestration
+    |
+    +-- safety       准入、急症、营养不良和药物分流
+    +-- profile      长期画像和当前投影
+    +-- pantry       文字、图片、条码、库存确认和预留
+    +-- intake       实际摄入和当天已吃扣减
+    +-- nutrition    食材、成分、单位和 Java 复算
+    +-- rule         版本化病种规则和约束构建
+    +-- solver       ojAlgo 可行性和克数求解
+    +-- plan         单餐、全天、替换、解馋和方案版本
+    +-- ai           Spring AI 做法、解释和固定 JSON
+    +-- evidence     方案完成后的指南出处和问答
+    +-- audit        决策依据、幂等和版本追溯
+    |
+MySQL (事实源) + Redis (可丢失缓存)
+```
+
+原因：
+
+- 当前只有一个产品和一个代码仓库，微服务会放大事务、版本和部署成本；
+- 规则、求解、校验必须在同一个一致性边界内完成；
+- 模块接口先固定，确有独立扩缩容需求时再拆；
+- RocketMQ 保留在技术路线中，但第一版不参与主链路。
+
+### 17.2 第一版依赖
+
+生产依赖：
+
+- Spring Web：HTTP 和 SSE；
+- Spring Validation：请求校验；
+- Spring Data JPA：MySQL；
+- Spring Data Redis：可选缓存和短期锁；
+- Spring AI：多模态候选识别、固定 JSON、做法和说明；
+- ojAlgo：食材克数和份量档位求解；
+- networknt JSON Schema Validator：模型输出第一层校验；
+- ZXing：包装食品条码；
+- MySQL Driver；
+- Flyway：数据库迁移。
+
+测试依赖：
+
+- JUnit 5；
+- AssertJ；
+- Testcontainers MySQL；
+- Testcontainers Redis 或兼容容器；
+- Spring Boot Test；
+- MockWebServer 或 WireMock，用于模型和 USDA API 契约测试。
+
+第一版不引入：
+
+- Timefold；
+- OR-Tools；
+- JaVers；
+- HAPI FHIR；
+- RocketMQ starter；
+- PaddleOCR；
+- Open Food Facts；
+- 中国食物成分表转录数据。
+
+这些依赖以后按明确需求逐个加入，不能为了展示技术栈提前堆入。
+
+### 17.3 开源复用决定
+
+第一版推荐不复制任何第三方业务源码，只使用正式依赖和合法测试数据。
+
+具体决定：
+
+- ojAlgo、networknt、Testcontainers 通过 Maven 使用；
+- USDA FoodData Central 选取小型 CC0 数据子集；
+- FHIR/SMART CC0 示例只作为后续适配测试；
+- `sugardaddi` 的单位、基准和置信度设计用于领域建模参考，换算代码自行实现；
+- EveryDay_Food 的中文数量解析和购物清单测试场景用于需求参考，Java 代码自行实现；
+- NutriChef、metabolic-care-assistant 和 diabetes-food-guide-skill 只参考信息结构；
+- 其他受限或无许可证项目不进入仓库。
+
+这样可以避免第一版维护第三方复制源码和对应文件头。Maven 依赖仍生成第三方许可证清单和 SBOM，并按第 10.8 节处理 NOTICE；以后确实复制代码时，再增加 `THIRD-PARTY-LICENSES` 和来源文件头。
+
+### 17.4 推荐主链路
+
+一次推荐按以下顺序执行：
+
+1. 接收 `SINGLE_MEAL`、`FULL_DAY` 或 `CRAVING_PORTION` 请求。
+2. 校验 `profileVersion`、`pantryVersion`、日期、时区和幂等键。
+3. 从 MySQL 重建当前画像，不使用对话文本作为事实。
+4. 执行四级准入和急症分流。
+5. 检查测量语境、单位、时间和趋势，得到五态决策。
+6. 冻结已吃、已确认和用户指定不改变的餐次。
+7. 根据当天剩余额度、库存模式和病种规则构造约束。
+8. ojAlgo 返回 `FEASIBLE`、`PARTIAL` 或 `INFEASIBLE`。
+9. Java 按同版成分数据重新计算并校验。
+10. Spring AI 只能对固定食材和克数生成做法和说明。
+11. JSON Schema、领域校验和营养复算再次检查模型输出。
+12. 通过 SSE 返回最终方案；用户确认后生成不可变方案版本。
+13. 方案确定后再追加指南出处或回答食物问答。
+
+任何一步失败都不能降级成模型自由生成。
+
+### 17.5 家中食材推荐
+
+文字输入：
+
+1. Spring AI 从自然语言提取候选食材、数量、单位和不确定项。
+2. Java 完成单位标准化。
+3. 用户确认后形成 `pantryVersion`。
+
+照片输入：
+
+1. 多模态模型识别食材候选；
+2. 包装食品优先尝试条码；
+3. 包装净含量或小票文字后续可接 OCR；
+4. 无法估重时要求用户选择个数、份量或克数范围；
+5. 用户确认后才进入库存。
+
+推荐时：
+
+- `ONLY_AVAILABLE`：库存外食材和超库存数量均为硬约束；
+- `PREFER_AVAILABLE`：优先库存，无法满足时生成最小补购清单；
+- 同一库存批次必须先预留再确认，避免两个并发方案重复使用；
+- 用户确认吃掉后，把预留变为实际消耗；取消方案则释放预留。
+
+### 17.6 「特别想吃一点」推荐
+
+使用单独的 `CRAVING_PORTION` 流程：
+
+1. 明确「不能吃」的原因；
+2. 绝对过敏、明确禁忌和原因未知时不试算；
+3. 可量化限制才进入求解；
+4. 用户给出期望份量或「一口、半份」；
+5. 系统换算成克数范围；
+6. 求解器判断能否放入剩余额度；
+7. 可行时返回份量、搭配、占用额度和剩余风险；
+8. 不可行时给更小份量或不命中禁忌的口感替代品。
+
+推荐表达必须使用「当前约束内可以容纳」或「风险相对更低」，不能说「没有伤害」。
+
+### 17.7 第一版数据
+
+产品食材数据：
+
+- 使用 USDA Foundation Foods/SR Legacy 的少量 CC0 食材；
+- 每条保留 `fdcId`、原名、版本、来源、每 100 克营养值；
+- 中文名是项目维护的别名，不冒充 USDA 官方译名；
+- 只发布能说明来源的数值；
+- 缺失的 GI、嘌呤或药食数据保持缺失，不能填 0。
+
+测试数据：
+
+- 自己编写的合成用户、库存、摄入和测量事件；
+- USDA CC0 小型成分夹具；
+- 低置信度图片识别响应和用户修正确认；
+- 硬约束可行、部分满足和无解场景；
+- 绝对禁忌与小份解馋；
+- 重复、乱序、延迟和并发事件；
+- SMART/FHIR CC0 示例用于未来导入契约。
+
+第一版不使用 NHANES 个体记录，不使用第三方食谱库，也不使用模拟器生成的临床阈值。
+
+### 17.8 第一版交付顺序
+
+第一批：
+
+- Maven 工程和启动入口；
+- MySQL、Flyway 和基础领域表；
+- 画像、库存、摄入和测量事件；
+- 自己编写的合成测试夹具；
+- USDA 小型 CC0 食材集；
+- 单位与成分复算。
+
+第二批：
+
+- 四级准入和五态测量决策；
+- 规则版本；
+- ojAlgo 单餐和全天求解；
+- `ONLY_AVAILABLE`、`PREFER_AVAILABLE`；
+- 无解解释和最小补购。
+
+第三批：
+
+- Spring AI 固定 JSON；
+- 文字和图片库存草稿；
+- 做法和解释；
+- SSE；
+- 模型失败回退。
+
+第四批：
+
+- `CRAVING_PORTION`；
+- 替换某餐或食材；
+- 库存预留与并发；
+- 方案确认和审计。
+
+第五批：
+
+- 指南出处；
+- 「这个病能不能吃某样」；
+- 专业人员目标录入；
+- 高血压等下一个单病种。
+
+### 17.9 第一版完成标准
+
+第一版只有同时满足以下条件才算完成：
+
+- 不调用模型也能生成可验证的单餐和一日食材克数；
+- 已吃食物会从当天额度扣除；
+- `ONLY_AVAILABLE` 不会使用库存外食材；
+- 绝对禁忌不会因「只吃一口」被绕过；
+- 约束无解时明确返回冲突，不编造方案；
+- 模型不能改变求解器确定的食材和克数；
+- Redis 清空不影响事实和已确认方案；
+- 重复和乱序请求不能覆盖新版本；
+- 每个营养值、规则和决定都能追溯来源与版本；
+- 所有已接受方案通过 Java 硬约束校验。
+
+## 18. 主要来源
 
 - 国家卫生健康委成人高血压、高脂血症、糖尿病食养指南（2023）：
   <https://www.nhc.gov.cn/sps/c100088/202301/f01895a06c5349ef999f25da833c166d.shtml>
