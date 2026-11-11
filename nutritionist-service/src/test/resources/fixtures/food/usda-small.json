@@ -1,0 +1,18 @@
+[
+  {
+    "foodItemId": "food-oats",
+    "displayName": "Oats",
+    "sourceRef": "USDA:FDC-2346396",
+    "nutrients": [
+      {"type": "ENERGY", "value": 379, "unit": "KILOCALORIE", "quality": "KNOWN"}
+    ]
+  },
+  {
+    "foodItemId": "food-chicken-breast",
+    "displayName": "Raw chicken breast",
+    "sourceRef": "USDA:FDC-171077",
+    "nutrients": [
+      {"type": "SODIUM", "value": null, "unit": "MILLIGRAM", "quality": "UNKNOWN"}
+    ]
+  }
+]

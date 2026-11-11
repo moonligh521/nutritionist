@@ -32,7 +32,7 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        if (path == null || !path.startsWith("/api/nutrition/v1/")) {
+        if (path == null || !path.startsWith("/api/nutrition/")) {
             return true;
         }
         return !WRITE_METHODS.contains(request.getMethod());

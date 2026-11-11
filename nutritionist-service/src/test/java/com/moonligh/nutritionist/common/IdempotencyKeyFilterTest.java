@@ -30,14 +30,14 @@ class IdempotencyKeyFilterTest {
 
     @Test
     void writeWithoutIdempotencyKeyIsRejected() throws Exception {
-        mockMvc.perform(post("/api/nutrition/v1/profile").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mockMvc.perform(post("/api/nutrition/profile").contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1002));
     }
 
     @Test
     void writeWithIdempotencyKeyPassesFilter() throws Exception {
-        mockMvc.perform(post("/api/nutrition/v1/profile")
+        mockMvc.perform(post("/api/nutrition/profile")
                         .header(IdempotencyKeyFilter.HEADER, "k-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
@@ -48,7 +48,7 @@ class IdempotencyKeyFilterTest {
     @RestController
     static class ProbeController {
 
-        @PostMapping("/api/nutrition/v1/profile")
+        @PostMapping("/api/nutrition/profile")
         Result<String> profile() {
             return Result.ok("ok");
         }

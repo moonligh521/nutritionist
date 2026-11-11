@@ -12,12 +12,13 @@
 
 ## 状态
 
-当前已具备产品设计基线与 V0.1 分阶段施工方案。业务代码和构建文件仍按施工任务逐步写入，还不是可运行服务。
+`feature-V0.1-20261105` 已落地 P0～P5 软件主链路：患者绑定、画像/安全/目标、库存与确定性配餐、推荐任务与 SSE、识别草稿与烹饪执行、偏差复算/解馋/效果评价、专业目标与 Kill Switch；本地 `mvn -B -pl nutritionist-service -am test` 通过。打 `0.1.0` 标签或合入 `master` 前须完成 [`V0.1 放行检查清单`](docs/superpowers/plans/2026-11-10-V0.1放行检查清单.md) 中的环境与压测项。
 
 权威文档：
 
 - 产品基线：[`docs/superpowers/specs/2026-11-10-慢病与减重食材推荐系统设计.md`](docs/superpowers/specs/2026-11-10-慢病与减重食材推荐系统设计.md)
 - 施工方案：[`docs/superpowers/plans/2026-11-10-V0.1分阶段施工方案.md`](docs/superpowers/plans/2026-11-10-V0.1分阶段施工方案.md)
+- 放行清单：[`docs/superpowers/plans/2026-11-10-V0.1放行检查清单.md`](docs/superpowers/plans/2026-11-10-V0.1放行检查清单.md)
 
 账号、患者基础资料和网关鉴权与同产品体系的 `registration-assistant` 协作；统一返回、鉴权过滤器等脚手架依赖独立仓 `moonligh-platform`（`platform-common` / `platform-security`；网关横切走挂号仓的 `consult-gateway` + `platform-gateway`）。本仓库只保存患者引用和营养业务事实，不复制 Result / JWT / 限流实现。
 
@@ -64,11 +65,11 @@ Java 包名是 `com.moonligh.nutritionist`。本地需 JDK 21，验证命令：`
 按 [`V0.1 分阶段施工方案`](docs/superpowers/plans/2026-11-10-V0.1分阶段施工方案.md) 推进：
 
 - [x] P0：工程骨架、统一返回、幂等、患者引用、CI
-- [ ] P1：画像、安全、目标、食材营养复算
-- [ ] P2：无模型确定性配餐 MVP
-- [ ] P3：识别草稿、SSE、按计划烹饪
-- [ ] P4：动态调整、解馋、效果评价
-- [ ] P5：专业验证、压测与放行
+- [x] P1：画像、安全、目标、食材营养复算
+- [x] P2：无模型确定性配餐 MVP
+- [x] P3：识别草稿、SSE、按计划烹饪
+- [x] P4：动态调整、解馋、效果评价
+- [x] P5：专业目标、Kill Switch、k6 脚本与放行清单（合入前仍须环境验收）
 
 ## 声明
 
