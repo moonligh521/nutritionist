@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-11
+
 ### Added
 
 - 建立 `nutritionist` 的仓库骨架、社区文件和 Apache-2.0 许可证。
@@ -23,4 +25,5 @@
 - 分支规范对齐挂号服务的 `feature-V主.次-YYYYMMDD` 体系，日期用实际创建日；`0.1` 例外固定为 `feature-V0.1-20261105`。默认分支使用 `master`，版本从 `0.1.0-SNAPSHOT` 开始。
 - 明确 P0～P5 阶段门禁：每阶段须完成本阶段独立验收与累计验收后方可进入下一阶段。
 - 明确账号与患者主数据归属 `registration-assistant`，nutritionist 只保存引用与营养业务事实。
-- V0.1 软件主链路已可在本地 JDK 21 下通过 `nutritionist-service` 测试；正式标签与合入仍以放行清单为准。
+- 对外接口前缀为 `/api/nutrition`，不带版本段。
+- 测试与运行使用挂号同一套 MySQL、Redis、RocketMQ；营养库名为 `nutritionist`。
