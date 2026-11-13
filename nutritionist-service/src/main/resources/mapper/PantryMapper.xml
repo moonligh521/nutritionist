@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.moonligh.nutritionist.infrastructure.persistence.PantryMapper">
+
+    <sql id="lotColumns">
+        SELECT i.pantry_item_id AS item_id, l.lot_id, i.account_id, i.patient_id, i.food_item_id,
+               l.on_hand_quantity AS on_hand, l.reserved_quantity AS reserved, i.unit_code, i.state_code,
+               l.expire_at, l.lot_code
+        FROM pantry_lot l
+        JOIN pantry_item i ON i.pantry_item_id = l.pantry_item_id
+    </sql>
+
+    <insert id="insertItem">
+        INSERT INTO pantry_item
+          (pantry_item_id, account_id, patient_id, food_item_id, state_code, unit_code, created_at)
+        VALUES (#{itemId}, #{accountId}, #{patientId}, #{foodItemId}, #{stateCode}, #{unitCode}, #{createdAt})
+    </insert>
+
+    <insert id="insertLot">
+        INSERT INTO pantry_lot
+          (lot_id, pantry_item_id, lot_code, on_hand_quantity, reserved_quantity, expire_at, version, updated_at)
+        VALUES (#{lotId}, #{itemId}, #{lotCode}, #{onHand}, #{reserved}, #{expireAt}, 1, #{updatedAt})
+    </insert>
+
+    <select id="listByAccount" resultType="com.moonligh.nutritionist.domain.pantry.PantryStore$Lot">
+        <include refid="lotColumns"/>
+        WHERE i.account_id = #{accountId} AND i.patient_id = #{patientId}
+        ORDER BY l.lot_id
+    </select>
+
+    <select id="listByPatient" resultType="com.moonligh.nutritionist.domain.pantry.PantryStore$Lot">
+        <include refid="lotColumns"/>
+        WHERE i.patient_id = #{patientId}
+        ORDER BY l.lot_id
+    </select>
+
+    <select id="findForUpdate" resultType="com.moonligh.nutritionist.domain.pantry.PantryStore$Lot">
+        <include refid="lotColumns"/>
+        WHERE l.lot_id = #{lotId}
+        FOR UPDATE
+    </select>
+
+    <update id="updateQuantities">
+        UPDATE pantry_lot
+        SET on_hand_quantity = #{onHand}, reserved_quantity = #{reserved}, version = version + 1, updated_at = #{updatedAt}
+        WHERE lot_id = #{lotId}
+    </update>
+
+    <insert id="insertReservation">
+        INSERT INTO pantry_reservation (reservation_id, plan_version_id, lot_id, quantity, status_code, created_at)
+        VALUES (#{reservationId}, #{planVersionId}, #{lotId}, #{quantity}, 1, #{createdAt})
+    </insert>
+
+    <select id="reservations" resultType="com.moonligh.nutritionist.domain.pantry.PantryStore$Reservation">
+        SELECT plan_version_id, lot_id, quantity
+        FROM pantry_reservation
+        WHERE plan_version_id = #{planVersionId} AND status_code = 1
+    </select>
+
+    <update id="releaseReservations">
+        UPDATE pantry_reservation SET status_code = 2 WHERE plan_version_id = #{planVersionId}
+    </update>
+
+    <select id="changeCount" resultType="long">
+        SELECT COUNT(*) FROM pantry_change_event WHERE patient_id = #{patientId}
+    </select>
+
+    <insert id="insertChange">
+        INSERT INTO pantry_change_event (event_id, patient_id, lot_id, change_type_code, quantity, created_at)
+        VALUES (#{eventId}, #{patientId}, #{lotId}, #{changeTypeCode}, #{quantity}, #{createdAt})
+    </insert>
+</mapper>

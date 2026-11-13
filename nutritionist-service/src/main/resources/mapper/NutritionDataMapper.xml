@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataMapper">
+
+    <insert id="insertCondition">
+        INSERT INTO clinical_condition
+          (condition_id, patient_id, condition_code, onset_date, source_code, note, version, status_code, created_at)
+        VALUES (#{conditionId}, #{patientId}, #{conditionCode}, #{onsetDate}, #{sourceCode}, #{note}, #{version},
+                #{statusCode}, #{createdAt})
+    </insert>
+
+    <select id="conditionCodes" resultType="string">
+        SELECT condition_code FROM clinical_condition WHERE patient_id = #{patientId}
+    </select>
+
+    <select id="conditionCount" resultType="int">
+        SELECT COUNT(*) FROM clinical_condition WHERE patient_id = #{patientId}
+    </select>
+
+    <select id="medicationNames" resultType="string">
+        SELECT medication_name FROM clinical_medication WHERE patient_id = #{patientId}
+    </select>
+
+    <select id="medicationCategories" resultType="int">
+        SELECT category_code FROM clinical_medication WHERE patient_id = #{patientId} AND category_code IS NOT NULL
+    </select>
+
+    <insert id="insertMedication">
+        INSERT INTO clinical_medication
+          (medication_id, patient_id, medication_name, category_code, dose_text, frequency_text,
+           complete_confirmed, version, created_at)
+        VALUES (#{medicationId}, #{patientId}, #{medicationName}, #{categoryCode}, #{doseText}, #{frequencyText},
+                #{completeConfirmed}, #{version}, #{createdAt})
+    </insert>
+
+    <insert id="insertAllergy">
+        INSERT INTO clinical_allergy
+          (allergy_id, patient_id, allergen_code, severity_code, confirmed, version, created_at)
+        VALUES (#{allergyId}, #{patientId}, #{allergenCode}, #{severityCode}, #{confirmed}, #{version}, #{createdAt})
+    </insert>
+
+    <insert id="insertMeasurement">
+        INSERT INTO clinical_measurement
+          (measurement_id, event_id, patient_id, type_code, measurement_value, unit_code, observed_at,
+           decision_code, safety_permission_code, created_at)
+        VALUES (#{measurementId}, #{eventId}, #{patientId}, #{typeCode}, #{measurementValue}, #{unitCode},
+                #{observedAt}, #{decisionCode}, #{safetyPermissionCode}, #{createdAt})
+    </insert>
+
+    <insert id="upsertCapabilitySwitch">
+        INSERT INTO capability_switch (scope_type, scope_key, enabled, updated_at)
+        VALUES (#{scopeType}, #{scopeKey}, #{enabled}, #{updatedAt})
+        ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), updated_at = VALUES(updated_at)
+    </insert>
+
+    <insert id="insertCapabilitySwitchEvent">
+        INSERT INTO capability_switch_event (scope_type, scope_key, action, actor_account_id, created_at)
+        VALUES (#{scopeType}, #{scopeKey}, #{action}, #{actorAccountId}, #{createdAt})
+    </insert>
+
+    <select id="capabilityEnabled" resultType="int">
+        SELECT enabled FROM capability_switch WHERE scope_type = #{scopeType} AND scope_key = #{scopeKey}
+    </select>
+
+    <insert id="insertTarget">
+        INSERT INTO professional_target (target_id, patient_id, current_version, created_at)
+        VALUES (#{targetId}, #{patientId}, #{currentVersion}, #{createdAt})
+    </insert>
+
+    <insert id="insertTargetVersion">
+        INSERT INTO professional_target_version
+          (target_id, version, nutrient_code, minimum_value, maximum_value, effective_at, expires_at, created_at)
+        VALUES (#{targetId}, #{version}, #{nutrientCode}, #{minimum}, #{maximum}, #{effectiveAt}, #{expiresAt},
+                #{createdAt})
+    </insert>
+
+    <sql id="targetColumns">
+        SELECT t.target_id, v.version, t.patient_id, v.nutrient_code,
+               v.minimum_value AS minimum, v.maximum_value AS maximum,
+               v.effective_at, v.expires_at, v.created_at
+        FROM professional_target t
+        JOIN professional_target_version v ON v.target_id = t.target_id AND v.version = t.current_version
+    </sql>
+
+    <select id="targets" resultType="com.moonligh.nutritionist.service.ProfessionalTargetService$Target">
+        <include refid="targetColumns"/>
+        WHERE t.patient_id = #{patientId}
+    </select>
+
+    <select id="findTarget" resultType="com.moonligh.nutritionist.service.ProfessionalTargetService$Target">
+        <include refid="targetColumns"/>
+        WHERE t.target_id = #{targetId}
+    </select>
+
+    <update id="expireTarget">
+        UPDATE professional_target_version SET expires_at = #{expiresAt}
+        WHERE target_id = #{targetId} AND version = #{version}
+    </update>
+
+    <select id="confirmedAllergens" resultType="string">
+        SELECT allergen_code FROM clinical_allergy WHERE patient_id = #{patientId} AND confirmed = 1
+    </select>
+
+    <select id="intakeIds" resultType="string">
+        SELECT intake_id FROM intake_event WHERE patient_id = #{patientId}
+    </select>
+
+    <update id="updatePlan">
+        UPDATE plan SET status_code = #{statusCode}, current_version = #{currentVersion}, updated_at = #{updatedAt}
+        WHERE plan_id = #{planId}
+    </update>
+
+    <insert id="insertPlan">
+        INSERT INTO plan (plan_id, account_id, patient_id, status_code, current_version, created_at, updated_at)
+        VALUES (#{planId}, #{accountId}, #{patientId}, #{statusCode}, #{currentVersion}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <insert id="insertPlanVersion">
+        INSERT INTO plan_version (plan_version_id, plan_id, profile_version, pantry_version, status_code, created_at)
+        VALUES (#{planVersionId}, #{planId}, #{profileVersion}, #{pantryVersion}, #{statusCode}, #{createdAt})
+    </insert>
+
+    <sql id="planColumns">
+        SELECT p.plan_id, p.current_version, p.patient_id, v.profile_version, v.pantry_version, p.status_code
+        FROM plan p
+        JOIN plan_version v ON v.plan_id = p.plan_id AND v.plan_version_id = p.current_version
+    </sql>
+
+    <select id="findPlan" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataMapper$PlanRow">
+        <include refid="planColumns"/>
+        WHERE p.plan_id = #{planId}
+    </select>
+
+    <select id="findConfirmedPlan" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataMapper$PlanRow">
+        <include refid="planColumns"/>
+        WHERE p.patient_id = #{patientId} AND p.status_code = #{statusCode}
+        ORDER BY p.updated_at DESC
+    </select>
+
+    <select id="findMeals" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataMapper$MealRow">
+        SELECT m.meal_id, m.meal_type_code, i.item_ref, m.status_code, i.grams
+        FROM meal m
+        LEFT JOIN meal_item i ON i.meal_id = m.meal_id
+        WHERE m.plan_version_id = #{planVersionId}
+    </select>
+
+    <insert id="upsertMeal">
+        INSERT INTO meal (meal_id, plan_version_id, meal_type_code, status_code)
+        VALUES (#{mealId}, #{planVersionId}, #{mealTypeCode}, #{statusCode})
+        ON DUPLICATE KEY UPDATE status_code = VALUES(status_code)
+    </insert>
+
+    <delete id="deleteMealItems">
+        DELETE FROM meal_item WHERE meal_id = #{mealId}
+    </delete>
+
+    <insert id="insertMealItem">
+        INSERT INTO meal_item (meal_item_id, meal_id, item_type_code, item_ref, quantity, unit_code, grams)
+        VALUES (#{mealItemId}, #{mealId}, 1, #{itemRef}, #{quantity}, 1, #{grams})
+    </insert>
+
+    <insert id="insertIntakeEvent">
+        INSERT INTO intake_event
+          (intake_id, event_id, account_id, patient_id, patient_version, meal_id, recorded_at)
+        VALUES (#{intakeId}, #{eventId}, #{accountId}, #{patientId}, #{patientVersion}, #{mealId}, #{recordedAt})
+    </insert>
+
+    <insert id="insertIntakeItem">
+        INSERT INTO intake_item
+          (intake_id, item_type_code, food_item_id, cooking_execution_id, quantity, unit_code, weight_basis_code)
+        VALUES (#{intakeId}, #{itemTypeCode}, #{foodItemId}, #{cookingExecutionId}, #{quantity}, #{unitCode},
+                #{weightBasisCode})
+    </insert>
+
+    <insert id="insertCorrection">
+        INSERT INTO intake_correction
+          (correction_id, event_id, original_intake_id, account_id, patient_id, patient_version, note, recorded_at)
+        VALUES (#{correctionId}, #{eventId}, #{originalIntakeId}, #{accountId}, #{patientId}, #{patientVersion},
+                #{note}, #{recordedAt})
+    </insert>
+
+    <insert id="insertCorrectionItem">
+        INSERT INTO intake_correction_item
+          (correction_id, item_type_code, food_item_id, cooking_execution_id, quantity, unit_code, weight_basis_code)
+        VALUES (#{correctionId}, #{itemTypeCode}, #{foodItemId}, #{cookingExecutionId}, #{quantity}, #{unitCode},
+                #{weightBasisCode})
+    </insert>
+
+    <select id="findCorrection" resultType="com.moonligh.nutritionist.api.res.IntakeRes">
+        SELECT correction_id AS intake_id, event_id, recorded_at
+        FROM intake_correction WHERE event_id = #{eventId}
+    </select>
+
+    <select id="findIntakeHeader" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataMapper$IntakeHeaderRow">
+        SELECT event_id, patient_id, patient_version, meal_id
+        FROM intake_event WHERE intake_id = #{intakeId}
+    </select>
+
+    <select id="findIntakeItems" resultType="com.moonligh.nutritionist.api.req.IntakeItemReq">
+        SELECT item_type_code, food_item_id, cooking_execution_id, quantity, unit_code, weight_basis_code
+        FROM intake_item WHERE intake_id = #{intakeId}
+    </select>
+
+    <select id="findIntakeByEventId" resultType="com.moonligh.nutritionist.api.res.IntakeRes">
+        SELECT intake_id, event_id, recorded_at FROM intake_event WHERE event_id = #{eventId}
+    </select>
+
+    <select id="findIntakeByIntakeId" resultType="com.moonligh.nutritionist.api.res.IntakeRes">
+        SELECT intake_id, event_id, recorded_at FROM intake_event WHERE intake_id = #{intakeId}
+    </select>
+
+    <insert id="insertDialogueTurn">
+        INSERT INTO dialogue_turn
+          (patient_id, turn_date, goal_code, food_names, missing_names, explanation, created_at)
+        VALUES (#{patientId}, #{turnDate}, #{goalCode}, #{foodNames}, #{missingNames}, #{explanation}, #{createdAt})
+    </insert>
+
+    <select id="latestDialogueTurn" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataStore$DialogueTurnRow">
+        SELECT turn_date AS `date`, goal_code, food_names, missing_names, explanation
+        FROM dialogue_turn
+        WHERE patient_id = #{patientId}
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <select id="latestMeasurement" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataStore$LatestMeasurement">
+        SELECT observed_at, safety_permission_code
+        FROM clinical_measurement
+        WHERE patient_id = #{patientId}
+        ORDER BY observed_at DESC, id DESC
+        LIMIT 1
+    </select>
+
+    <select id="findMeasurement" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataMapper$MeasurementRow">
+        SELECT measurement_id, decision_code, safety_permission_code
+        FROM clinical_measurement WHERE event_id = #{eventId}
+    </select>
+
+    <update id="updateCooking">
+        UPDATE cooking_execution SET status_code = #{statusCode}, updated_at = #{updatedAt}
+        WHERE execution_id = #{executionId}
+    </update>
+
+    <insert id="insertCooking">
+        INSERT INTO cooking_execution
+          (execution_id, plan_id, plan_version, meal_id, recipe_version, status_code, created_at, updated_at)
+        VALUES (#{executionId}, #{planId}, #{planVersion}, #{mealId}, #{recipeVersion}, #{statusCode},
+                #{createdAt}, #{updatedAt})
+    </insert>
+
+    <insert id="upsertCookingStep">
+        INSERT INTO cooking_execution_step (execution_id, step_no, completed_at)
+        VALUES (#{executionId}, #{stepNo}, #{completedAt})
+        ON DUPLICATE KEY UPDATE completed_at = VALUES(completed_at)
+    </insert>
+
+    <select id="findCooking" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataMapper$CookingRow">
+        SELECT execution_id, plan_id, plan_version, meal_id, recipe_version, status_code
+        FROM cooking_execution WHERE execution_id = #{executionId}
+    </select>
+
+    <select id="cookingSteps" resultType="int">
+        SELECT step_no FROM cooking_execution_step WHERE execution_id = #{executionId}
+    </select>
+
+    <insert id="upsertReplay">
+        INSERT INTO decision_replay
+          (plan_version, profile_hash, rules_hash, constraint_ids_json, solver_version, solver_layer_hash, created_at)
+        VALUES (#{planVersion}, #{profileHash}, #{rulesHash}, #{constraintIdsJson}, #{solverVersion},
+                #{solverLayerHash}, #{createdAt})
+        ON DUPLICATE KEY UPDATE profile_hash = VALUES(profile_hash)
+    </insert>
+
+    <select id="findReplay" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataMapper$ReplayRow">
+        SELECT plan_version, profile_hash, rules_hash, constraint_ids_json, solver_version, solver_layer_hash
+        FROM decision_replay WHERE plan_version = #{planVersion}
+    </select>
+
+    <update id="updateRecipe">
+        UPDATE recipe SET current_version = #{currentVersion} WHERE recipe_id = #{recipeId}
+    </update>
+
+    <insert id="insertRecipe">
+        INSERT INTO recipe (recipe_id, display_name, current_version, created_at)
+        VALUES (#{recipeId}, #{displayName}, #{currentVersion}, #{createdAt})
+    </insert>
+
+    <update id="updateRecipeVersion">
+        UPDATE recipe_version SET status_code = #{statusCode} WHERE recipe_id = #{recipeId} AND version = #{version}
+    </update>
+
+    <insert id="insertRecipeVersion">
+        INSERT INTO recipe_version (recipe_id, version, status_code, approved_at)
+        VALUES (#{recipeId}, #{version}, #{statusCode}, #{approvedAt})
+    </insert>
+
+    <delete id="deleteRecipeIngredients">
+        DELETE FROM recipe_ingredient WHERE recipe_id = #{recipeId} AND recipe_version = #{recipeVersion}
+    </delete>
+
+    <delete id="deleteRecipeSteps">
+        DELETE FROM recipe_step WHERE recipe_id = #{recipeId} AND recipe_version = #{recipeVersion}
+    </delete>
+
+    <insert id="insertRecipeIngredient">
+        INSERT INTO recipe_ingredient (recipe_id, recipe_version, food_item_id, quantity, unit_code)
+        VALUES (#{recipeId}, #{recipeVersion}, #{foodItemId}, #{quantity}, #{unitCode})
+    </insert>
+
+    <insert id="insertRecipeStep">
+        INSERT INTO recipe_step (recipe_id, recipe_version, step_no, instruction_text)
+        VALUES (#{recipeId}, #{recipeVersion}, #{stepNo}, #{instruction})
+    </insert>
+
+    <select id="recipeStatus" resultType="int">
+        SELECT status_code FROM recipe_version WHERE recipe_id = #{recipeId} AND version = #{version}
+    </select>
+
+    <select id="recipeIngredients" resultType="com.moonligh.nutritionist.domain.recipe.RecipeIngredient">
+        SELECT food_item_id, quantity, unit_code
+        FROM recipe_ingredient WHERE recipe_id = #{recipeId} AND recipe_version = #{recipeVersion}
+    </select>
+
+    <select id="recipeSteps" resultType="com.moonligh.nutritionist.domain.recipe.RecipeStep">
+        SELECT step_no, instruction_text AS instruction
+        FROM recipe_step WHERE recipe_id = #{recipeId} AND recipe_version = #{recipeVersion}
+        ORDER BY step_no
+    </select>
+
+    <insert id="insertDraft">
+        INSERT INTO recognition_draft
+          (draft_id, patient_id, source_type_code, source_reference, candidates_json, created_at)
+        VALUES (#{draftId}, #{patientId}, #{sourceTypeCode}, #{sourceReference}, #{candidatesJson}, #{createdAt})
+    </insert>
+
+    <select id="findDraft" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataMapper$DraftRow">
+        SELECT draft_id, patient_id, candidates_json FROM recognition_draft WHERE draft_id = #{draftId}
+    </select>
+
+    <delete id="deleteDraft">
+        DELETE FROM recognition_draft WHERE draft_id = #{draftId}
+    </delete>
+</mapper>

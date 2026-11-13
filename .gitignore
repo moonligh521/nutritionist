@@ -1,0 +1,34 @@
+# Maven 与编译产物。只忽略模块根下的目录，避免源码包 domain/target 被一起排除。
+/target/
+*/target/
+/build/
+*/build/
+/out/
+*/out/
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs and local env
+*.log
+logs/
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+config/application-local.yml
+
+# IDE
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

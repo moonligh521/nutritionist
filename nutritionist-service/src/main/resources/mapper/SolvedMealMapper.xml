@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.moonligh.nutritionist.infrastructure.persistence.SolvedMealMapper">
+
+    <delete id="deleteDishes">
+        DELETE FROM solved_meal_dish WHERE patient_id = #{patientId} AND meal_date = #{mealDate}
+    </delete>
+
+    <delete id="deleteShortages">
+        DELETE FROM solved_meal_shortage WHERE patient_id = #{patientId} AND meal_date = #{mealDate}
+    </delete>
+
+    <insert id="insertShortage">
+        INSERT INTO solved_meal_shortage (patient_id, meal_date, food_item_id)
+        VALUES (#{patientId}, #{mealDate}, #{foodItemId})
+    </insert>
+
+    <insert id="insertDish">
+        INSERT INTO solved_meal_dish
+          (patient_id, meal_date, recipe_id, portions, food_item_id, grams, step_text, represents_daily_remainder)
+        VALUES (#{patientId}, #{mealDate}, #{recipeId}, #{portions}, #{foodItemId}, #{grams}, #{stepText},
+                #{representsDailyRemainder})
+    </insert>
+
+    <select id="findDishes" resultType="com.moonligh.nutritionist.infrastructure.persistence.SolvedMealMapper$DishRow">
+        SELECT recipe_id, portions, food_item_id, grams, step_text
+        FROM solved_meal_dish WHERE patient_id = #{patientId} AND meal_date = #{mealDate}
+        ORDER BY recipe_id
+    </select>
+
+    <select id="findRemainder" resultType="int">
+        SELECT represents_daily_remainder FROM solved_meal_dish
+        WHERE patient_id = #{patientId} AND meal_date = #{mealDate} LIMIT 1
+    </select>
+
+    <select id="findShortages" resultType="string">
+        SELECT food_item_id FROM solved_meal_shortage
+        WHERE patient_id = #{patientId} AND meal_date = #{mealDate} ORDER BY food_item_id
+    </select>
+</mapper>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.moonligh.nutritionist.infrastructure.persistence.PatientBindingMapper">
+
+    <select id="find" resultType="com.moonligh.nutritionist.domain.profile.PatientRef">
+        SELECT account_id, patient_id, patient_version, bound_at
+        FROM patient_binding
+        WHERE account_id = #{accountId} AND patient_id = #{patientId}
+    </select>
+
+    <update id="update">
+        UPDATE patient_binding
+        SET patient_version = #{patientVersion}, bound_at = #{boundAt}
+        WHERE account_id = #{accountId} AND patient_id = #{patientId}
+    </update>
+
+    <insert id="insert">
+        INSERT INTO patient_binding (account_id, patient_id, patient_version, bound_at)
+        VALUES (#{accountId}, #{patientId}, #{patientVersion}, #{boundAt})
+    </insert>
+</mapper>

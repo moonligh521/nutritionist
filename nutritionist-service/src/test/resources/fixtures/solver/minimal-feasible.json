@@ -1,0 +1,8 @@
+{
+  "candidates": [
+    {"id": "rice", "maxQuantity": 4, "energyPerUnit": 100}
+  ],
+  "constraints": [
+    {"id": "energy", "minimum": 300, "maximum": 400, "target": 350, "hard": true}
+  ]
+}

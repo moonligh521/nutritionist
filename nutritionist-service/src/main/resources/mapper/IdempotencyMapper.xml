@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.moonligh.nutritionist.infrastructure.persistence.IdempotencyMapper">
+
+    <select id="find" resultType="com.moonligh.nutritionist.domain.audit.IdempotencyRecord">
+        SELECT account_id, endpoint_scope, idempotency_key, request_hash,
+               response_code, response_body, created_at
+        FROM idempotency_record
+        WHERE account_id = #{accountId} AND endpoint_scope = #{endpointScope} AND idempotency_key = #{idempotencyKey}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO idempotency_record
+          (account_id, endpoint_scope, idempotency_key, request_hash,
+           response_code, response_body, created_at)
+        VALUES (#{accountId}, #{endpointScope}, #{idempotencyKey}, #{requestHash},
+                #{responseCode}, #{responseBody}, #{createdAt})
+    </insert>
+</mapper>
