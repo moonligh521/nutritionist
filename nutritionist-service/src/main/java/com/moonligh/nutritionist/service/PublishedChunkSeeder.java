@@ -10,11 +10,10 @@ import org.springframework.stereotype.Component;
 import com.moonligh.nutritionist.domain.recommend.RecipeDocument;
 import com.moonligh.nutritionist.domain.recommend.RecipeVectorizer;
 import com.moonligh.nutritionist.infrastructure.persistence.SearchChunkMapper;
-import com.moonligh.nutritionist.infrastructure.vector.MilvusRecipeIndex;
 
 /**
- * 启动时把还没有向量的已发布菜写成一条文档。
- * 产品之后上传的表会按菜号覆盖。已有记录不重写，避免冲掉种类、菜系和标签。
+ * 启动时把还没有正文的已发布菜写入 MySQL 检索表。
+ * 完整标量字段以产品 CSV 上传为准，这里不往 Milvus 写空的种类/菜系/标签。
  */
 @Component
 public class PublishedChunkSeeder implements ApplicationRunner {
@@ -22,17 +21,14 @@ public class PublishedChunkSeeder implements ApplicationRunner {
     private final CatalogBrowse catalog;
     private final SearchChunkMapper chunks;
     private final RecipeVectorizer.TextEmbedding embedding;
-    private final MilvusRecipeIndex milvus;
 
     public PublishedChunkSeeder(
             CatalogBrowse catalog,
             SearchChunkMapper chunks,
-            RecipeVectorizer.TextEmbedding embedding,
-            MilvusRecipeIndex milvus) {
+            RecipeVectorizer.TextEmbedding embedding) {
         this.catalog = catalog;
         this.chunks = chunks;
         this.embedding = embedding;
-        this.milvus = milvus;
     }
 
     @Override
@@ -52,10 +48,7 @@ public class PublishedChunkSeeder implements ApplicationRunner {
                         recipe.step());
                 float[] vector = embedding == null ? null : embedding.embed(document);
                 String version = recipe.version() == null || recipe.version().isBlank() ? "1" : recipe.version();
-                String json = RecipeVectorizer.toJson(vector);
-                chunks.upsert(recipe.id(), version, document, json);
-                milvus.upsert(new RecipeVectorizer.Stored(
-                        recipe.id(), version, document, json, true, "", "", "", "", ""));
+                chunks.upsert(recipe.id(), version, document, RecipeVectorizer.toJson(vector));
             }
         } catch (RuntimeException error) {
             // 向量表还没建好或模型暂时失败时，推荐仍按原来的主料规则走。

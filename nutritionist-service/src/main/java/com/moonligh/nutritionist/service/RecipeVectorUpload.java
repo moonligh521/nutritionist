@@ -35,7 +35,9 @@ public class RecipeVectorUpload {
                 .collect(Collectors.toSet());
         return RecipeVectorizer.store(csv, published, embedding, stored -> {
             chunks.upsert(stored.id(), stored.version(), stored.document(), stored.embeddingJson());
-            milvus.upsert(stored);
+            if (stored.published()) {
+                milvus.upsert(stored);
+            }
         });
     }
 }
