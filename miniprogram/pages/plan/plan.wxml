@@ -1,0 +1,55 @@
+<view class="page">
+  <view class="tabs">
+    <text class="{{tab == 'week' ? 'on' : ''}}" data-tab="week" bindtap="setTab">周计划</text>
+    <text class="{{tab == 'month' ? 'on' : ''}}" data-tab="month" bindtap="setTab">月计划</text>
+    <text class="{{tab == 'custom' ? 'on' : ''}}" data-tab="custom" bindtap="setTab">自定义</text>
+  </view>
+
+  <view class="card" wx:if="{{tab != 'month'}}">
+    <view wx:for="{{rows}}" wx:key="key" class="day">
+      <view class="row">
+        <text class="grow">{{item.label}} 周{{item.weekday}}</text>
+        <view class="kcal">
+          <text class="kcal-num">{{item.energy}}</text>
+          <text class="kcal-unit">千卡</text>
+        </view>
+      </view>
+      <view class="row meal" wx:if="{{item.breakfast}}">
+        <text class="grow">早餐 {{item.breakfast}}</text>
+        <text class="ink nowrap">{{item.breakfastKcal}} 千卡</text>
+      </view>
+      <view class="muted miss" wx:else>早餐 还没按额度配</view>
+      <view class="row meal" wx:if="{{item.lunch}}">
+        <text class="grow">午餐 {{item.lunch}}</text>
+        <text class="ink nowrap">{{item.lunchKcal}} 千卡</text>
+      </view>
+      <view class="muted miss" wx:else>午餐 还没按额度配</view>
+      <view class="row meal" wx:if="{{item.dinner}}">
+        <text class="grow">晚餐 {{item.dinner}}</text>
+        <text class="ink nowrap">{{item.dinnerKcal}} 千卡</text>
+      </view>
+      <view class="muted miss" wx:else>晚餐 还没按额度配</view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{tab == 'month'}}">
+    <view class="grid">
+      <view wx:for="{{monthCells}}" wx:key="key" class="cell {{item.on ? 'on' : ''}}">
+        <text wx:if="{{item.day}}">{{item.day}}</text>
+        <text class="dot" wx:if="{{item.on}}"></text>
+      </view>
+    </view>
+    <view class="muted tip">绿点表示这一天已经按家里的食材配过三餐。点周计划可以看菜名。</view>
+  </view>
+
+  <view class="card custom" wx:if="{{tab == 'custom'}}">
+    <view class="muted">从今天起连续几天，沿用同一份按额度算出的三餐。</view>
+    <view class="lengths">
+      <text class="{{customDays == 3 ? 'on' : ''}}" data-days="3" bindtap="setDays">3 天</text>
+      <text class="{{customDays == 7 ? 'on' : ''}}" data-days="7" bindtap="setDays">7 天</text>
+      <text class="{{customDays == 14 ? 'on' : ''}}" data-days="14" bindtap="setDays">14 天</text>
+    </view>
+    <view class="save" bindtap="makeCustom">生成这段计划</view>
+  </view>
+</view>
+<nav current="/pages/plan/plan"></nav>

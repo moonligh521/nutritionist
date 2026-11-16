@@ -1,0 +1,37 @@
+<view class="page" wx:if="{{recipe}}">
+  <view class="kicker">{{recipe.category == 'weight' ? '减肥' : recipe.cuisine}} · {{recipe.method}}</view>
+  <view class="h1">{{recipe.name}}</view>
+  <view class="kcal-hero">
+    <text class="kcal-num">{{recipe.nutrition.energy}}</text>
+    <text class="kcal-unit">千卡 / 这一份</text>
+  </view>
+  <view class="note" wx:if="{{recipe.desc}}">{{recipe.desc}}</view>
+  <view class="note" wx:if="{{recipe.source}}">营养数来自原食谱目录，不是按本仓库食材表重算的。</view>
+  <view class="rule"></view>
+  <view class="kicker">配料</view>
+  <block wx:if="{{recipe.lines.length}}">
+    <view wx:for="{{recipe.lines}}" wx:key="*this" class="line">{{item}}</view>
+  </block>
+  <block wx:else>
+    <view wx:for="{{recipe.ingredients}}" wx:key="foodId" class="row line">
+      <image class="food" src="{{item.image}}" mode="aspectFill"></image>
+      <text class="grow">{{item.name}} {{item.phrase}}</text>
+      <text class="num nowrap">{{item.grams}} 克</text>
+    </view>
+  </block>
+  <view class="rule"></view>
+  <view class="kicker">做法</view>
+  <block wx:if="{{recipe.steps.length}}">
+    <view wx:for="{{recipe.steps}}" wx:for-index="stepIndex" wx:key="stepIndex" class="step">{{stepIndex + 1}}. {{item}}</view>
+  </block>
+  <view wx:else class="step">{{recipe.step}}</view>
+  <view class="rule"></view>
+  <view class="kicker">这一份</view>
+  <view class="row"><text class="grow">能量</text><text class="num nowrap">{{recipe.nutrition.energy}} 千卡</text></view>
+  <view class="row"><text class="grow">蛋白质</text><text class="num nowrap">{{recipe.nutrition.protein}} 克</text></view>
+  <view class="row"><text class="grow">碳水</text><text class="num nowrap">{{recipe.nutrition.carb}} 克</text></view>
+  <view class="row"><text class="grow">脂肪</text><text class="num nowrap">{{recipe.nutrition.fat}} 克</text></view>
+  <view class="row" wx:if="{{recipe.nutrition.sodium != null}}"><text class="grow">钠</text><text class="num nowrap">{{recipe.nutrition.sodium}} 毫克</text></view>
+  <view class="row" wx:if="{{recipe.category == 'weight'}}"><text class="grow">纤维</text><text class="num nowrap">{{recipe.nutrition.fiber == null ? '来源未给出' : recipe.nutrition.fiber + ' 克'}}</text></view>
+</view>
+<nav current="/pages/recipes/recipes"></nav>

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,15 @@ class RecipeCatalogServiceTest {
 
         assertEquals(new BigDecimal("20"), service.scale("recipe-1", "1", new BigDecimal("2"))
                 .ingredients().getFirst().quantity());
+    }
+
+    @Test
+    void registerDropsTheCachedCard() {
+        List<String> deleted = new ArrayList<>();
+        RecipeCatalogService service = new RecipeCatalogService(null, new DishCardCache(deleted::add));
+        service.register(recipe(RecipeStatus.PUBLISHED));
+
+        assertEquals(List.of("dish:recipe-1"), deleted);
     }
 
     @Test

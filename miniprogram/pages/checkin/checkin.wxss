@@ -1,0 +1,76 @@
+.month {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 28rpx;
+  padding-bottom: 12rpx;
+  border-bottom: 1px solid #1c1915;
+}
+
+.week, .grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.week text, .day {
+  width: 14.28%;
+  box-sizing: border-box;
+}
+
+.week text {
+  padding: 12rpx 0;
+  color: #6d675f;
+  font-size: 22rpx;
+  text-align: center;
+}
+
+.day {
+  min-height: 92rpx;
+  padding: 8rpx 0 12rpx;
+  text-align: center;
+}
+
+.day.today {
+  color: #1f4d3a;
+}
+
+.day.on {
+  background: #efeae2;
+}
+
+.marks {
+  display: flex;
+  justify-content: center;
+  gap: 4rpx;
+  margin-top: 4rpx;
+  color: #d9d3c7;
+  font-size: 16rpx;
+}
+
+.marks .on {
+  color: #1f4d3a;
+}
+
+.meal {
+  padding: 24rpx 0;
+  border-bottom: 1px solid #d9d3c7;
+}
+
+.photo {
+  width: 100%;
+  height: 280rpx;
+  margin-top: 12rpx;
+  background: #efeae2;
+}
+
+.ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 12rpx;
+  color: #1c1915;
+  font-size: 26rpx;
+}
+
+.ops text {
+  text-decoration: underline;
+}

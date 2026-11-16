@@ -18,9 +18,8 @@ spring:
     virtual:
       enabled: true
   datasource:
-    # 测试环境与挂号共用同一台 MySQL、Redis、RocketMQ。库名用 nutritionist，不写入 consult_agent。
-    # 测试环境地址和密码只写 gitignore 的 config/application-local.yml。
-    url: jdbc:mysql://127.0.0.1:3306/nutritionist?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true&sessionVariables=innodb_lock_wait_timeout=5
+    # 与挂号同一个库 consult_agent。测试环境地址和密码只写 gitignore 的 config/application-local.yml。
+    url: jdbc:mysql://127.0.0.1:3306/consult_agent?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=utf8&useUnicode=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true&sessionVariables=innodb_lock_wait_timeout=5
     username: root
     password: your_password
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -37,6 +36,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    # 与挂号共用 consult_agent，库里已有挂号的表。从 0 起补营养服务自己的表。
+    baseline-on-migrate: true
+    baseline-version: 0
 
 mybatis:
   mapper-locations: classpath:mapper/**/*.xml
@@ -60,13 +62,25 @@ consult:
     staff-only-prefixes: []
   redisson:
     enabled: true
+  vector:
+    enabled: true
+    host: 127.0.0.1
+    port: 19530
+    api-key: ""
+    base-url: https://dashscope.aliyuncs.com
+    model: qwen3-vl-embedding
 
 model:
   api-key: ""
   base-url: https://api.deepseek.com
-  model-name: deepseek-v4-flash
+  model-name: deepseek-v4-pro
   timeout-ms: 2000
   acquire-wait-ms: 200
+  # 主模型超时重试一次。还超时调用兜底模型。再超时由代码按食材规则给出，或只提示。
+  # 兜底模型名留空表示还没接。密钥留空则沿用上面的密钥。真实密钥写在 application-local.yml。
+  fallback-model-name: ""
+  fallback-base-url: ""
+  fallback-api-key: ""
 
 nutritionist:
   clinical-record:

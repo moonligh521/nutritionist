@@ -1,0 +1,143 @@
+page {
+  background: #f4f8f7;
+  color: #243038;
+  font-family: "PingFang SC", "Noto Sans SC", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+.page {
+  padding: 28rpx 28rpx 180rpx;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 28rpx;
+  padding: 28rpx;
+  margin-top: 24rpx;
+}
+
+.muted {
+  color: #8a9694;
+  font-size: 24rpx;
+}
+
+.teal {
+  color: #14b8a6;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.45;
+}
+
+.nowrap {
+  flex-shrink: 0;
+}
+
+.h1 {
+  font-size: 44rpx;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.note {
+  color: #8a9694;
+  font-size: 24rpx;
+}
+
+.kicker {
+  color: #8a9694;
+  font-size: 24rpx;
+}
+
+.empty {
+  padding: 40rpx 0;
+  color: #8a9694;
+}
+
+.field {
+  margin-top: 20rpx;
+}
+
+.label {
+  display: block;
+  color: #8a9694;
+  font-size: 24rpx;
+  margin-bottom: 8rpx;
+}
+
+.input,
+.picker-value {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 18rpx 20rpx;
+}
+
+.chips {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 24rpx;
+}
+
+.chip {
+  padding: 12rpx 22rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #52605e;
+}
+
+.chip.on {
+  background: #14b8a6;
+  color: #ffffff;
+}
+
+.btn {
+  margin-top: 28rpx;
+  background: #14b8a6;
+  color: #ffffff;
+  border-radius: 999rpx;
+}
+
+.rule {
+  height: 1px;
+  background: #eef3f2;
+  margin: 28rpx 0;
+}
+
+.num {
+  color: #243038;
+}
+
+.ink {
+  color: #0f9f8f;
+  font-weight: 650;
+}
+
+.kcal {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  flex-shrink: 0;
+  gap: 6rpx;
+}
+
+.kcal-num {
+  color: #0f9f8f;
+  font-size: 34rpx;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.kcal-unit {
+  color: #8a9694;
+  font-size: 22rpx;
+}

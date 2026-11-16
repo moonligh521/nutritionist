@@ -35,6 +35,10 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
         if (path == null || !path.startsWith("/api/nutrition/")) {
             return true;
         }
+        // 推荐回合只读菜谱和额度，不写入计划，所以不要求幂等键。
+        if (path.startsWith("/api/nutrition/agent/")) {
+            return true;
+        }
         return !WRITE_METHODS.contains(request.getMethod());
     }
 

@@ -2,6 +2,7 @@ package com.moonligh.nutritionist.service;
 
 import java.math.BigDecimal;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,20 +22,35 @@ public class RecipeCatalogService {
 
     private final EntityTable<Recipe> recipes = new EntityTable<>(recipe -> key(recipe.recipeId(), recipe.version()));
     private final NutritionDataStore records;
+    private final DishCardCache cards;
 
     public RecipeCatalogService() {
-        this(null);
+        this(null, (DishCardCache) null);
+    }
+
+    public RecipeCatalogService(NutritionDataStore records) {
+        this(records, (DishCardCache) null);
+    }
+
+    /** 测试直接传入缓存，用来确认改菜时会删掉旧菜卡。 */
+    RecipeCatalogService(NutritionDataStore records, DishCardCache cards) {
+        this.records = records;
+        this.cards = cards;
     }
 
     @Autowired
-    public RecipeCatalogService(NutritionDataStore records) {
-        this.records = records;
+    public RecipeCatalogService(NutritionDataStore records, ObjectProvider<DishCardCache> cards) {
+        this(records, cards.getIfAvailable());
     }
 
     public void register(Recipe recipe) {
         recipes.save(recipe);
         if (records != null) {
             records.saveRecipe(recipe);
+        }
+        if (cards != null) {
+            // 配料、做法或上下架变了，旧菜卡不能继续留在 Redis。
+            cards.forget(recipe.recipeId());
         }
     }
 

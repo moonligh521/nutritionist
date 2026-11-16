@@ -16,6 +16,7 @@
 
 权威文档：
 
+- 食材推荐回合：[`docs/方案`](docs/方案)
 - 产品基线：[`docs/superpowers/specs/2026-11-10-慢病与减重食材推荐系统设计.md`](docs/superpowers/specs/2026-11-10-慢病与减重食材推荐系统设计.md)
 - V0.x 减重餐竖切：[`docs/superpowers/specs/2026-11-12-V0.x减重餐竖切范围.md`](docs/superpowers/specs/2026-11-12-V0.x减重餐竖切范围.md)
 - 首批菜谱绑定：[`docs/superpowers/specs/2026-11-12-减重餐首批菜谱食材绑定清单.md`](docs/superpowers/specs/2026-11-12-减重餐首批菜谱食材绑定清单.md)
@@ -35,11 +36,10 @@
 
 ## 技术选择
 
-与挂号服务对齐同一套运行时，模型接入使用 Spring AI。
+与挂号服务对齐同一套运行时。食材推荐的模型调用自己封装，走兼容的 `/chat/completions`。Spring AI 尚未接入，以后只替换 `ModelCompletion`。
 
 - JDK 21
 - Spring Boot 4.1.1
-- Spring AI 2.0.1
 - MySQL 8.0.46
 - Redis 8.2.10
 - RocketMQ 5.5.1，Java 客户端使用 rocketmq-spring 2.3.6；V0.1 主链路不接入

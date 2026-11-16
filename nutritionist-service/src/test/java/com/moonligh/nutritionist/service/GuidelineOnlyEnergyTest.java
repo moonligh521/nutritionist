@@ -18,9 +18,12 @@ import com.moonligh.nutritionist.domain.meal.MealPlan;
 import com.moonligh.nutritionist.domain.nutrition.IngredientNutritionCalculator;
 import com.moonligh.nutritionist.domain.nutrition.NutrientType;
 import com.moonligh.nutritionist.domain.nutrition.StapleFoods;
+import com.moonligh.nutritionist.domain.nutrition.WeightLossFoods;
 import com.moonligh.nutritionist.domain.profile.InMemoryProfileRepository;
 import com.moonligh.nutritionist.domain.profile.Profile;
 import com.moonligh.nutritionist.domain.safety.MedicationAutomaticEnergy;
+import com.moonligh.nutritionist.domain.safety.ObesityDietInitialization;
+import com.moonligh.nutritionist.domain.target.ChineseDri2023Energy;
 import com.moonligh.nutritionist.infrastructure.identity.FakePatientGateway;
 import com.moonligh.nutritionist.infrastructure.persistence.InMemoryPatientBindingStore;
 
@@ -36,8 +39,8 @@ class GuidelineOnlyEnergyTest {
         BigDecimal withHypertension = energy(hypertensionPlan);
         BigDecimal obesityEnergy = energy(obesityPlan);
 
-        assertTrue(withHypertension.compareTo(new BigDecimal("1250")) > 0, "hypertension=" + withHypertension);
-        assertTrue(obesityEnergy.compareTo(new BigDecimal("1250")) < 0, "obesity=" + obesityEnergy);
+        assertTrue(withHypertension.compareTo(obesityEnergy) > 0, "hypertension=" + withHypertension + " obesity=" + obesityEnergy);
+        assertTrue(obesityEnergy.compareTo(obesityCeiling()) <= 0, "obesity=" + obesityEnergy);
     }
 
     @Test
@@ -53,7 +56,7 @@ class GuidelineOnlyEnergyTest {
         Harness harness = harness("OBESITY");
         harness.records().addMedication("acc-1", medication("达格列净", MedicationAutomaticEnergy.SGLT2_INHIBITOR));
 
-        assertTrue(energy(harness.work().compose(request())).compareTo(new BigDecimal("1250")) < 0);
+        assertTrue(energy(harness.work().compose(request())).compareTo(obesityCeiling()) <= 0);
     }
 
     @Test
@@ -75,15 +78,24 @@ class GuidelineOnlyEnergyTest {
         assertThrows(BusinessException.class, () -> harness.work().compose(request()));
     }
 
+    private static BigDecimal obesityCeiling() {
+        return ObesityDietInitialization.energyCeiling(ChineseDri2023Energy.kcal(1, 80, 2).orElseThrow(), true);
+    }
+
     private static BigDecimal energy(MealPlan plan) {
         IngredientNutritionCalculator calculator = new IngredientNutritionCalculator();
         BigDecimal total = BigDecimal.ZERO;
         for (MealPlan.Dish dish : plan.dishes()) {
-            MealPlan.IngredientGrams ingredient = dish.ingredients().getFirst();
-            total = total.add(calculator.calculate(StapleFoods.find(ingredient.foodItemId()), ingredient.grams()).stream()
-                    .filter(nutrient -> nutrient.type() == NutrientType.ENERGY && nutrient.value() != null)
-                    .map(nutrient -> nutrient.value())
-                    .reduce(BigDecimal.ZERO, BigDecimal::add));
+            for (MealPlan.IngredientGrams ingredient : dish.ingredients()) {
+                var food = StapleFoods.find(ingredient.foodItemId());
+                if (food == null) {
+                    food = WeightLossFoods.find(ingredient.foodItemId());
+                }
+                total = total.add(calculator.calculate(food, ingredient.grams()).stream()
+                        .filter(nutrient -> nutrient.type() == NutrientType.ENERGY && nutrient.value() != null)
+                        .map(nutrient -> nutrient.value())
+                        .reduce(BigDecimal.ZERO, BigDecimal::add));
+            }
         }
         return total;
     }

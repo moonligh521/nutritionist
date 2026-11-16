@@ -3,7 +3,9 @@ package com.moonligh.nutritionist.domain.meal;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -15,7 +17,6 @@ import com.moonligh.nutritionist.domain.nutrition.IngredientNutritionCalculator;
 import com.moonligh.nutritionist.domain.nutrition.NutrientType;
 import com.moonligh.nutritionist.domain.nutrition.NutritionDataQualityPolicy;
 import com.moonligh.nutritionist.domain.nutrition.StapleFoods;
-import com.moonligh.nutritionist.domain.recipe.MealPracticalityValidator;
 import com.moonligh.nutritionist.domain.recipe.Recipe;
 import com.moonligh.nutritionist.domain.recipe.RecipeStatus;
 import com.moonligh.nutritionist.domain.recipe.StapleRecipes;
@@ -37,8 +38,6 @@ import com.moonligh.nutritionist.domain.solver.SolverResult;
 public class MealComposer {
 
     private static final BigDecimal PORTION = BigDecimal.ONE;
-    private static final MealPracticalityValidator PRACTICALITY =
-            new MealPracticalityValidator(new BigDecimal("10"), 12);
 
     private final NutritionSolver solver;
     private final List<Recipe> recipes;
@@ -63,16 +62,18 @@ public class MealComposer {
     public MealPlan compose(MealOrder order) {
         List<Recipe> published = recipes.stream()
                 .filter(recipe -> recipe.status() == RecipeStatus.PUBLISHED)
-                .filter(recipe -> !order.excludedFoodIds().contains(recipe.ingredients().getFirst().foodItemId()))
-                .filter(recipe -> PRACTICALITY.validate(recipe).practical())
+                .filter(recipe -> recipe.ingredients().stream()
+                        .noneMatch(item -> order.excludedFoodIds().contains(item.foodItemId())))
+                .filter(this::selectable)
                 .toList();
         if (order.onlyAvailable()) {
             published = published.stream().filter(recipe -> inStock(recipe, order)).toList();
         }
         Set<NutrientType> critical = criticalNutrients(order);
         published = published.stream()
-                .filter(recipe -> qualityPolicy.evaluate(food(recipe.ingredients().getFirst().foodItemId()), critical)
-                        .disposition() != DataQualityDisposition.REJECT)
+                .filter(recipe -> recipe.ingredients().stream()
+                        .noneMatch(item -> qualityPolicy.evaluate(food(item.foodItemId()), critical)
+                                .disposition() == DataQualityDisposition.REJECT))
                 .toList();
         if (published.isEmpty()) {
             throw infeasible(order);
@@ -109,14 +110,16 @@ public class MealComposer {
             throw infeasible(order);
         }
         List<String> stillMissing = missingFoodIds.stream()
-                .filter(foodId -> dishes.stream().anyMatch(item -> item.ingredients().getFirst().foodItemId().equals(foodId)))
+                .filter(foodId -> dishes.stream().anyMatch(item -> item.ingredients().stream()
+                        .anyMatch(ingredient -> ingredient.foodItemId().equals(foodId))))
                 .toList();
         return new MealPlan(List.copyOf(dishes), false, stillMissing);
     }
 
     private List<String> missing(List<Recipe> published, MealOrder order) {
         return published.stream()
-                .map(recipe -> recipe.ingredients().getFirst().foodItemId())
+                .flatMap(recipe -> recipe.ingredients().stream())
+                .map(ingredient -> ingredient.foodItemId())
                 .filter(foodId -> stock(order, foodId) == null)
                 .distinct()
                 .toList();
@@ -144,26 +147,53 @@ public class MealComposer {
     }
 
     private boolean inStock(Recipe recipe, MealOrder order) {
-        return stock(order, recipe.ingredients().getFirst().foodItemId()) != null;
+        return recipe.ingredients().stream().allMatch(item -> stock(order, item.foodItemId()) != null);
+    }
+
+    /** 主料至少 10 克。油盐可以更少，但不能把主料拆成碎份，也不能用油炸或油煎。 */
+    private boolean selectable(Recipe recipe) {
+        if (recipe.ingredients().isEmpty() || recipe.cookware() == null || recipe.cookware().isBlank()) {
+            return false;
+        }
+        if (recipe.steps().isEmpty() || recipe.steps().stream().anyMatch(step -> step.instruction() == null
+                || step.instruction().isBlank()
+                || step.instruction().contains("炸")
+                || step.instruction().contains("煎"))) {
+            return false;
+        }
+        if (recipe.ingredients().size() > 12) {
+            return false;
+        }
+        return recipe.ingredients().getFirst().quantity().compareTo(new BigDecimal("10")) >= 0;
     }
 
     private SolverCandidate candidate(Recipe recipe, MealOrder order) {
-        FoodItem food = food(recipe.ingredients().getFirst().foodItemId());
-        BigDecimal grams = recipe.ingredients().getFirst().quantity();
         BigDecimal maximum = PORTION;
-        MealOrder.Stock stock = stock(order, food.foodItemId());
-        if (stock != null && grams.signum() > 0) {
-            maximum = stock.availableGrams().divide(grams, 6, RoundingMode.HALF_UP).min(PORTION);
-            if (maximum.signum() < 0) {
-                maximum = BigDecimal.ZERO;
+        for (var ingredient : recipe.ingredients()) {
+            MealOrder.Stock available = stock(order, ingredient.foodItemId());
+            if (available == null || ingredient.quantity().signum() <= 0) {
+                continue;
+            }
+            BigDecimal cap = available.availableGrams().divide(ingredient.quantity(), 6, RoundingMode.HALF_UP);
+            if (cap.signum() < 0) {
+                cap = BigDecimal.ZERO;
+            }
+            maximum = maximum.min(cap);
+        }
+        Map<NutrientType, BigDecimal> totals = new EnumMap<>(NutrientType.class);
+        for (var ingredient : recipe.ingredients()) {
+            for (var nutrient : calculator.calculate(food(ingredient.foodItemId()), ingredient.quantity())) {
+                if (nutrient.value() != null) {
+                    totals.merge(nutrient.type(), nutrient.value(), BigDecimal::add);
+                }
             }
         }
-        List<CandidateNutrient> nutrients = calculator.calculate(food, grams).stream()
-                .filter(nutrient -> nutrient.value() != null)
-                .map(nutrient -> new CandidateNutrient(nutrient.type(), nutrient.value()))
+        List<CandidateNutrient> nutrients = totals.entrySet().stream()
+                .map(entry -> new CandidateNutrient(entry.getKey(), entry.getValue()))
                 .toList();
-        BigDecimal weight = order.deprioritizedFoodIds().contains(food.foodItemId()) ? BigDecimal.ONE : BigDecimal.ZERO;
-        return new SolverCandidate(recipe.recipeId(), maximum, nutrients, weight);
+        boolean deprioritized = recipe.ingredients().stream()
+                .anyMatch(item -> order.deprioritizedFoodIds().contains(item.foodItemId()));
+        return new SolverCandidate(recipe.recipeId(), maximum, nutrients, deprioritized ? BigDecimal.ONE : BigDecimal.ZERO);
     }
 
     List<SolverConstraint> remaining(MealOrder order) {

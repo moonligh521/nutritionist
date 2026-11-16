@@ -1,0 +1,42 @@
+<view class="page">
+  <view class="kicker">食案</view>
+  <view class="h1">签到</view>
+  <view class="note">每天记下早餐、午餐、晚餐。可以拍照，也可以用今天菜单上的菜。</view>
+
+  <view class="month">
+    <text bindtap="prev">上月</text>
+    <text>{{title}}</text>
+    <text bindtap="next">下月</text>
+  </view>
+  <view class="week">
+    <text wx:for="{{weekdays}}" wx:key="*this">{{item}}</text>
+  </view>
+  <view class="grid">
+    <view wx:for="{{cells}}" wx:key="key" class="day {{item.current ? 'today' : ''}} {{item.key == selected ? 'on' : ''}}" data-key="{{item.key}}" bindtap="pick">
+      <text wx:if="{{item.day}}">{{item.day}}</text>
+      <view class="marks" wx:if="{{item.day}}">
+        <text class="{{item.breakfast ? 'on' : ''}}">早</text>
+        <text class="{{item.lunch ? 'on' : ''}}">午</text>
+        <text class="{{item.dinner ? 'on' : ''}}">晚</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="rule"></view>
+  <view class="kicker">{{selected}}</view>
+  <view class="meal" wx:for="{{meals}}" wx:key="key">
+    <view class="row">
+      <text class="dish">{{item.label}}</text>
+      <text class="note" wx:if="{{item.record}}">已签</text>
+    </view>
+    <image wx:if="{{item.record.image}}" class="photo" src="{{item.record.image}}" mode="aspectFill"></image>
+    <view class="note" wx:if="{{item.record.text}}">{{item.record.text}}</view>
+    <view class="ops" wx:if="{{canCheck}}">
+      <text data-slot="{{item.key}}" bindtap="shoot">拍照签到</text>
+      <text data-slot="{{item.key}}" bindtap="useMenu">用今日菜单</text>
+      <text wx:if="{{item.record}}" data-slot="{{item.key}}" bindtap="clear">撤销</text>
+    </view>
+    <view class="note" wx:elif="{{future}}">这一天还没到。</view>
+  </view>
+</view>
+<nav current="/pages/checkin/checkin"></nav>

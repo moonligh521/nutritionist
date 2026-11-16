@@ -1,0 +1,35 @@
+<view class="page">
+  <view class="kicker">食案</view>
+  <view class="h1">餐桌</view>
+  <view class="note">上桌的菜合在这里。有克数的食材按克相加。家常菜原文没有克数，只列出来打勾，不折算。</view>
+  <view class="empty" wx:if="{{dishes.length == 0}}">还没有放上餐桌的菜。</view>
+  <block wx:else>
+    <view class="card">
+      <view class="row">
+        <text class="grow">这一桌</text>
+        <text class="ink nowrap">{{total}} 千卡</text>
+      </view>
+      <view wx:for="{{dishes}}" wx:key="id" class="line">
+        <view class="row">
+          <text class="grow">{{item.name}}</text>
+          <view class="kcal">
+            <text class="kcal-num">{{item.nutrition.energy}}</text>
+            <text class="kcal-unit">千卡</text>
+          </view>
+        </view>
+        <text class="op" data-id="{{item.id}}" bindtap="remove">撤下</text>
+      </view>
+    </view>
+    <view class="kicker">按克购买</view>
+    <view wx:for="{{foods}}" wx:key="key" class="row line" data-key="{{item.key}}" bindtap="toggle">
+      <text class="grow {{item.done ? 'done' : ''}}">{{item.seasoning ? '调味 · ' : ''}}{{item.name}}</text>
+      <text class="num nowrap">{{item.grams}} 克</text>
+    </view>
+    <view class="kicker" wx:if="{{lines.length}}">菜谱原文</view>
+    <view wx:for="{{lines}}" wx:key="key" class="row line" data-key="{{item.key}}" bindtap="toggle">
+      <text class="grow {{item.done ? 'done' : ''}}">{{item.text}}</text>
+      <text class="num nowrap" wx:if="{{item.count > 1}}">×{{item.count}}</text>
+    </view>
+  </block>
+</view>
+<nav current="/pages/mine/mine"></nav>

@@ -1,0 +1,22 @@
+<view class="page">
+  <view class="h1">家里有什么</view>
+  <view class="muted">油、盐、生抽按常备，不用勾。勾过的食材才会用来配早、中、晚。</view>
+  <view class="grid">
+    <view wx:for="{{foods}}" wx:key="id" class="chip {{item.on ? 'on' : ''}}" data-id="{{item.id}}" bindtap="toggle">
+      <image class="food" src="{{item.image}}" mode="aspectFill"></image>
+      <text>{{item.name}}</text>
+    </view>
+  </view>
+  <view class="save" bindtap="match">按这些食材推荐三道</view>
+  <view class="muted" wx:if="{{matchNote}}">{{matchNote}}</view>
+  <view class="card" wx:for="{{matches}}" wx:key="id">
+    <view class="row">
+      <text class="grow">{{item.name}}</text>
+      <text class="ink nowrap">规则分 {{item.score}}</text>
+    </view>
+    <view class="muted" wx:if="{{item.energy != null}}">这一份 {{item.energy}} 千卡</view>
+    <view class="muted">{{item.reason}}</view>
+    <view class="step">{{item.step}}</view>
+  </view>
+  <view class="save" bindtap="make">配出今天、一周和这个月</view>
+</view>

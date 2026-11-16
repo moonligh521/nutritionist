@@ -1,0 +1,12 @@
+<view class="page">
+  <view class="banner">
+    <view class="h1">我的食案</view>
+    <view class="sub">记录在这台手机上。建议，不是诊疗。</view>
+  </view>
+  <view class="card">
+    <view class="link" bindtap="go" data-url="/pages/budget/budget">目标</view>
+    <view class="link" bindtap="go" data-url="/pages/checkin/checkin">餐饮签到</view>
+    <view class="link" bindtap="go" data-url="/pages/shop/shop">餐桌和采购</view>
+  </view>
+</view>
+<nav current="/pages/mine/mine"></nav>

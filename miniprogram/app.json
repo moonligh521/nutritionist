@@ -1,0 +1,22 @@
+{
+  "pages": [
+    "pages/today/today",
+    "pages/plan/plan",
+    "pages/pantry/pantry",
+    "pages/mine/mine",
+    "pages/checkin/checkin",
+    "pages/recipes/recipes",
+    "pages/recipe/recipe",
+  "pages/budget/budget",
+  "pages/shop/shop"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#f4f8f7",
+    "navigationBarTitleText": "食案",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f4f8f7",
+    "backgroundTextStyle": "dark"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

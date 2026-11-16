@@ -12,7 +12,6 @@ import com.moonligh.nutritionist.api.req.IntakeItemReq;
 import com.moonligh.nutritionist.api.res.IntakeRes;
 import com.moonligh.nutritionist.domain.recipe.RecipeIngredient;
 import com.moonligh.nutritionist.domain.recipe.RecipeStep;
-import com.moonligh.nutritionist.infrastructure.persistence.NutritionDataStore.DialogueTurnRow;
 import com.moonligh.nutritionist.infrastructure.persistence.NutritionDataStore.LatestMeasurement;
 import com.moonligh.nutritionist.service.ProfessionalTargetService.Target;
 
@@ -243,17 +242,6 @@ public interface NutritionDataMapper {
     List<IntakeRes> findIntakeByEventId(@Param("eventId") String eventId);
 
     List<IntakeRes> findIntakeByIntakeId(@Param("intakeId") String intakeId);
-
-    int insertDialogueTurn(
-            @Param("patientId") String patientId,
-            @Param("turnDate") LocalDate turnDate,
-            @Param("goalCode") String goalCode,
-            @Param("foodNames") String foodNames,
-            @Param("missingNames") String missingNames,
-            @Param("explanation") String explanation,
-            @Param("createdAt") Instant createdAt);
-
-    List<DialogueTurnRow> latestDialogueTurn(@Param("patientId") String patientId);
 
     List<LatestMeasurement> latestMeasurement(@Param("patientId") String patientId);
 

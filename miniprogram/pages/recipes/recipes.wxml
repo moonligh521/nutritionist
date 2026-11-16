@@ -1,0 +1,55 @@
+<view class="page library">
+  <view class="h1">食谱</view>
+  <view class="search-wrap">
+    <input class="search" placeholder="搜索食谱" value="{{keyword}}" bindinput="search" />
+  </view>
+
+  <view class="filters">
+    <picker mode="selector" range="{{sorts}}" value="{{sortIndex}}" bindchange="onSort">
+      <text class="cuisine on">{{sorts[sortIndex]}}</text>
+    </picker>
+  </view>
+
+  <view class="empty" wx:if="{{rows.length == 0}}">还没有可推荐的菜。</view>
+  <view class="card item" wx:for="{{rows}}" wx:key="id">
+    <view class="main" data-id="{{item.id}}" bindtap="open">
+      <image wx:if="{{item.thumb}}" class="thumb" src="{{item.thumb}}" mode="aspectFill"></image>
+      <view class="thumb blank" wx:else></view>
+      <view class="copy grow">
+        <view class="name">{{item.name}}</view>
+        <view class="muted">{{item.cuisine}}</view>
+      </view>
+      <view class="kcal">
+        <text class="kcal-num">{{item.nutrition.energy}}</text>
+        <text class="kcal-unit">千卡</text>
+      </view>
+    </view>
+    <text class="add {{item.added ? 'added' : ''}}" data-id="{{item.id}}" catchtap="add">{{item.added ? '已加入' : '加入'}}</text>
+  </view>
+
+  <view class="dock" wx:if="{{plate.length}}">
+    <view class="dock-text">
+      <text>已加入 {{plate.length}} 道 · {{plateEnergy}} 千卡</text>
+      <text class="muted dock-names">{{plateNames}}</text>
+    </view>
+    <text class="dock-btn" bindtap="compose">配成一餐</text>
+  </view>
+
+  <view class="mask" wx:if="{{suggestion.length}}" bindtap="closeSuggestion"></view>
+  <view class="sheet" wx:if="{{suggestion.length}}">
+    <view class="sheet-title">这一餐，三道左右</view>
+    <view class="muted">按你加入的菜补齐主食、荤素。这是建议。</view>
+    <view wx:for="{{suggestion}}" wx:key="id" class="suggest" data-id="{{item.id}}" bindtap="open">
+      <text class="grow">{{item.name}}</text>
+      <view class="kcal">
+        <text class="kcal-num">{{item.nutrition.energy}}</text>
+        <text class="kcal-unit">千卡</text>
+      </view>
+    </view>
+    <view class="sheet-actions">
+      <text bindtap="toShop">放入采购</text>
+      <text class="primary" bindtap="toToday">用作今日三餐</text>
+    </view>
+  </view>
+</view>
+<nav current="/pages/recipes/recipes"></nav>

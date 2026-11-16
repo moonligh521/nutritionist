@@ -209,20 +209,6 @@
         SELECT intake_id, event_id, recorded_at FROM intake_event WHERE intake_id = #{intakeId}
     </select>
 
-    <insert id="insertDialogueTurn">
-        INSERT INTO dialogue_turn
-          (patient_id, turn_date, goal_code, food_names, missing_names, explanation, created_at)
-        VALUES (#{patientId}, #{turnDate}, #{goalCode}, #{foodNames}, #{missingNames}, #{explanation}, #{createdAt})
-    </insert>
-
-    <select id="latestDialogueTurn" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataStore$DialogueTurnRow">
-        SELECT turn_date AS `date`, goal_code, food_names, missing_names, explanation
-        FROM dialogue_turn
-        WHERE patient_id = #{patientId}
-        ORDER BY id DESC
-        LIMIT 1
-    </select>
-
     <select id="latestMeasurement" resultType="com.moonligh.nutritionist.infrastructure.persistence.NutritionDataStore$LatestMeasurement">
         SELECT observed_at, safety_permission_code
         FROM clinical_measurement

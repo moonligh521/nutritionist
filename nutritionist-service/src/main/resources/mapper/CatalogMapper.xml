@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.moonligh.nutritionist.infrastructure.persistence.CatalogMapper">
+
+    <sql id="publishedFood">
+        SELECT 1
+        FROM recipe_ingredient ingredient
+        INNER JOIN recipe recipe
+            ON recipe.recipe_id = ingredient.recipe_id
+           AND recipe.current_version = ingredient.recipe_version
+        INNER JOIN recipe_version version
+            ON version.recipe_id = recipe.recipe_id
+           AND version.version = recipe.current_version
+           AND version.status_code = 2
+        WHERE ingredient.food_item_id = CAST(food.id AS CHAR)
+    </sql>
+
+    <select id="foodsUsedByPublishedRecipes" resultType="com.moonligh.nutritionist.infrastructure.persistence.CatalogMapper$FoodRow">
+        SELECT CAST(food.id AS CHAR) AS id, food.name, food.category_code AS categoryCode
+        FROM food food
+        WHERE food.is_deleted = 0
+          AND EXISTS (<include refid="publishedFood"/>)
+        ORDER BY food.id
+    </select>
+
+    <select id="nutrientsForPublishedFoods" resultType="com.moonligh.nutritionist.infrastructure.persistence.CatalogMapper$NutrientRow">
+        SELECT CAST(nutrient.food_id AS CHAR) AS foodId, nutrient.nutrient_code AS nutrientCode, nutrient.amount
+        FROM food_nutrient nutrient
+        INNER JOIN food food ON food.id = nutrient.food_id AND food.is_deleted = 0
+        WHERE nutrient.is_deleted = 0
+          AND nutrient.nutrient_code IN (1, 2, 3, 4, 5, 6)
+          AND EXISTS (<include refid="publishedFood"/>)
+    </select>
+
+    <select id="publishedRecipes" resultType="com.moonligh.nutritionist.infrastructure.persistence.CatalogMapper$RecipeHead">
+        SELECT recipe.recipe_id AS id,
+               recipe.display_name AS name,
+               COALESCE((
+                   SELECT equipment.equipment_code
+                   FROM recipe_equipment_variant equipment
+                   WHERE equipment.recipe_id = recipe.recipe_id
+                     AND equipment.recipe_version = recipe.current_version
+                   ORDER BY equipment.id
+                   LIMIT 1
+               ), '') AS cookware,
+               COALESCE((
+                   SELECT step.instruction_text
+                   FROM recipe_step step
+                   WHERE step.recipe_id = recipe.recipe_id
+                     AND step.recipe_version = recipe.current_version
+                   ORDER BY step.step_no
+                   LIMIT 1
+               ), '') AS step,
+               recipe.current_version AS version
+        FROM recipe recipe
+        INNER JOIN recipe_version version
+            ON version.recipe_id = recipe.recipe_id
+           AND version.version = recipe.current_version
+           AND version.status_code = 2
+        ORDER BY recipe.recipe_id
+    </select>
+
+    <select id="publishedIngredients" resultType="com.moonligh.nutritionist.infrastructure.persistence.CatalogMapper$IngredientRow">
+        SELECT ingredient.recipe_id AS recipeId, ingredient.food_item_id AS foodId, ingredient.quantity AS grams
+        FROM recipe_ingredient ingredient
+        INNER JOIN recipe recipe
+            ON recipe.recipe_id = ingredient.recipe_id
+           AND recipe.current_version = ingredient.recipe_version
+        INNER JOIN recipe_version version
+            ON version.recipe_id = recipe.recipe_id
+           AND version.version = recipe.current_version
+           AND version.status_code = 2
+        ORDER BY ingredient.recipe_id, ingredient.id
+    </select>
+    <insert id="upsertNutrition">
+        INSERT INTO recipe_nutrition_result
+            (recipe_id, recipe_version, nutrient_code, nutrient_value, unit_code, quality_code, source_ref)
+        VALUES
+            (#{recipeId}, #{version}, #{nutrientCode}, #{amount}, #{unitCode}, #{qualityCode}, #{sourceRef})
+        ON DUPLICATE KEY UPDATE
+            nutrient_value = VALUES(nutrient_value),
+            unit_code = VALUES(unit_code),
+            quality_code = VALUES(quality_code),
+            source_ref = VALUES(source_ref)
+    </insert>
+</mapper>

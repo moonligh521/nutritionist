@@ -1,0 +1,46 @@
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 8rpx 18rpx 8rpx 8rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #52605e;
+}
+
+.food {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #e7f6f3;
+}
+
+.chip text {
+  line-height: 1.4;
+}
+
+.chip.on {
+  background: #14b8a6;
+  color: #ffffff;
+}
+
+.step {
+  margin-top: 8rpx;
+  line-height: 1.5;
+}
+
+.save {
+  margin-top: 40rpx;
+  background: #14b8a6;
+  color: #ffffff;
+  text-align: center;
+  border-radius: 999rpx;
+  padding: 22rpx 0;
+}

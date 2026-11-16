@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.moonligh.nutritionist.infrastructure.persistence.StatuteArticleMapper">
+
+    <insert id="upsert">
+        INSERT INTO statute_article (
+            id, law_name, status_name, part_name, subpart_name, chapter_name, section_name,
+            article_no, article_number, path_name, body_text)
+        VALUES (
+            #{id}, #{lawName}, #{statusName}, #{partName}, #{subpartName}, #{chapterName}, #{sectionName},
+            #{articleNo}, #{articleNumber}, #{pathName}, #{bodyText})
+        ON DUPLICATE KEY UPDATE
+            status_name = VALUES(status_name),
+            part_name = VALUES(part_name),
+            subpart_name = VALUES(subpart_name),
+            chapter_name = VALUES(chapter_name),
+            section_name = VALUES(section_name),
+            article_number = VALUES(article_number),
+            path_name = VALUES(path_name),
+            body_text = VALUES(body_text)
+    </insert>
+
+    <select id="findExact" resultType="com.moonligh.nutritionist.infrastructure.persistence.StatuteArticleMapper$ArticleRow">
+        SELECT id, law_name AS lawName, status_name AS statusName, part_name AS partName,
+               subpart_name AS subpartName, chapter_name AS chapterName, section_name AS sectionName,
+               article_no AS articleNo, article_number AS articleNumber, path_name AS pathName,
+               body_text AS bodyText
+        FROM statute_article
+        WHERE status_name = '有效'
+          AND (law_name = #{lawName} OR law_name LIKE CONCAT('%', #{lawName}, '%'))
+          AND (article_no = #{articleNo}
+               <if test="articleNumber != null">OR article_number = #{articleNumber}</if>)
+        ORDER BY CHAR_LENGTH(law_name)
+        LIMIT 1
+    </select>
+
+    <select id="searchKeyword" resultType="com.moonligh.nutritionist.infrastructure.persistence.StatuteArticleMapper$ArticleRow">
+        SELECT id, law_name AS lawName, status_name AS statusName, part_name AS partName,
+               subpart_name AS subpartName, chapter_name AS chapterName, section_name AS sectionName,
+               article_no AS articleNo, article_number AS articleNumber, path_name AS pathName,
+               body_text AS bodyText
+        FROM statute_article
+        WHERE status_name = '有效'
+          AND (law_name LIKE CONCAT('%', #{query}, '%')
+               OR article_no LIKE CONCAT('%', #{query}, '%')
+               OR body_text LIKE CONCAT('%', #{query}, '%'))
+        ORDER BY law_name, article_number
+        LIMIT #{limit}
+    </select>
+
+    <select id="findByIds" resultType="com.moonligh.nutritionist.infrastructure.persistence.StatuteArticleMapper$ArticleRow">
+        SELECT id, law_name AS lawName, status_name AS statusName, part_name AS partName,
+               subpart_name AS subpartName, chapter_name AS chapterName, section_name AS sectionName,
+               article_no AS articleNo, article_number AS articleNumber, path_name AS pathName,
+               body_text AS bodyText
+        FROM statute_article
+        WHERE status_name = '有效' AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+</mapper>

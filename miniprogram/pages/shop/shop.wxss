@@ -1,0 +1,16 @@
+.line {
+  padding: 20rpx 0;
+  border-bottom: 1px solid #eef3f2;
+}
+
+.done {
+  color: #8a9694;
+  text-decoration: line-through;
+}
+
+.op {
+  display: block;
+  margin-top: 8rpx;
+  text-align: right;
+  color: #0f9f8f;
+}

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.moonligh.nutritionist.infrastructure.persistence.SearchChunkMapper">
+
+    <insert id="upsert">
+        INSERT INTO recipe_search_chunk (recipe_id, version, document_text, embedding_json)
+        VALUES (#{recipeId}, #{version}, #{documentText}, #{embeddingJson})
+        ON DUPLICATE KEY UPDATE
+            version = VALUES(version),
+            document_text = VALUES(document_text),
+            embedding_json = VALUES(embedding_json)
+    </insert>
+
+    <select id="all" resultType="com.moonligh.nutritionist.infrastructure.persistence.SearchChunkMapper$ChunkRow">
+        SELECT recipe_id AS recipeId, document_text AS documentText, embedding_json AS embeddingJson
+        FROM recipe_search_chunk
+        ORDER BY recipe_id
+    </select>
+</mapper>

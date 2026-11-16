@@ -231,18 +231,6 @@ public class NutritionDataStore {
                 header.eventId(), header.patientId(), header.patientVersion(), header.mealId(), items));
     }
 
-    public void insertDialogueTurn(String patientId, LocalDate date, String goalCode, String foodNames, String missingNames, String explanation) {
-        records.insertDialogueTurn(patientId, date, goalCode, foodNames, missingNames, explanation, Instant.now());
-    }
-
-    public Optional<DialogueTurnRow> latestDialogueTurn(String patientId) {
-        return records.latestDialogueTurn(patientId).stream().findFirst();
-    }
-
-    public record DialogueTurnRow(
-            LocalDate date, String goalCode, String foodNames, String missingNames, String explanation) {
-    }
-
     public Optional<LatestMeasurement> latestMeasurement(String patientId) {
         return records.latestMeasurement(patientId).stream().findFirst();
     }

@@ -18,6 +18,7 @@ import com.moonligh.nutritionist.domain.meal.MealComposer;
 import com.moonligh.nutritionist.domain.meal.MealOrder;
 import com.moonligh.nutritionist.domain.meal.MealPlan;
 import com.moonligh.nutritionist.domain.nutrition.NutrientType;
+import com.moonligh.nutritionist.domain.nutrition.WeightLossFoods;
 import com.moonligh.nutritionist.domain.profile.Profile;
 import com.moonligh.nutritionist.domain.profile.ProfileRepository;
 import com.moonligh.nutritionist.domain.safety.AutomaticPlanningExclusions;
@@ -29,6 +30,8 @@ import com.moonligh.nutritionist.domain.safety.HyperlipidemiaAdmission;
 import com.moonligh.nutritionist.domain.safety.HyperlipidemiaCholesterolInitialization;
 import com.moonligh.nutritionist.domain.safety.DiabetesGlycemicIndex;
 import com.moonligh.nutritionist.domain.safety.ObesityDietInitialization;
+import com.moonligh.nutritionist.domain.recipe.WeightLossRecipes;
+import com.moonligh.nutritionist.domain.solver.OjalgoSolverAdapter;
 import com.moonligh.nutritionist.domain.solver.SolverConstraint;
 import com.moonligh.nutritionist.domain.target.ChineseDri2023Energy;
 
@@ -40,7 +43,8 @@ public class DeterministicRecommendationWork implements RecommendationWorkflow.R
     private final GoutPlanningService gout;
     private final CkdPlanningService ckd;
     private final DiabetesPlanningService diabetes;
-    private final MealComposer meals = new MealComposer();
+    private final MealComposer meals = new MealComposer(
+            new OjalgoSolverAdapter(), WeightLossRecipes.published(), WeightLossFoods.all());
     private final SolvedMealService solvedMeals;
     private final PantryService pantry;
     private final IntakeService intakes;

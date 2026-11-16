@@ -19,7 +19,7 @@
 
 ## 开发约定
 
-- 运行时：JDK 21、Spring Boot 4.1.1、Spring AI 2.0.1、MySQL 8.0.46、Redis 8.2.10；RocketMQ 5.5.1 在 V0.1 主链路不接入。
+- 运行时：JDK 21、Spring Boot 4.1.1、MySQL 8.0.46、Redis 8.2.10；RocketMQ 5.5.1 在 V0.1 主链路不接入。食材推荐模型调用见 `docs/方案`，当前不把 Spring AI 当作回合运行时。
 - 包名：`com.moonligh.nutritionist`。
 - 用到哪个工具，才把依赖写进构建文件，并在 `infrastructure` 封装；业务代码只依赖本仓库端口。
 - 接口与领域对象使用明确的 `Req`/`Res`/`Command`/`Result`，不要使用 `Map<String,Object>` 传递业务数据。

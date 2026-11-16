@@ -1,0 +1,49 @@
+<view class="page">
+  <view class="kicker">食案</view>
+  <view class="h1">目标</view>
+  <view class="note">能量按《中国居民膳食营养素参考摄入量（2023版）》的成年需要量。维持用需要量，减肥用 85% 且不低于男 1500、女 1200 千卡，增肌用需要量的 110%。这是建议，不是诊疗。</view>
+  <view class="field">
+    <text class="label">性别</text>
+    <picker mode="selector" range="{{sexes}}" value="{{sexIndex}}" bindchange="onSex">
+      <view class="picker-value">{{sexes[sexIndex]}}</view>
+    </picker>
+  </view>
+  <view class="field">
+    <text class="label">年龄</text>
+    <input class="input" type="number" value="{{age}}" bindinput="onAge" />
+  </view>
+  <view class="field">
+    <text class="label">身高（厘米）</text>
+    <input class="input" type="digit" value="{{height}}" placeholder="选填，用来看体质指数" bindinput="onHeight" />
+  </view>
+  <view class="field">
+    <text class="label">体重（千克）</text>
+    <input class="input" type="digit" value="{{weight}}" placeholder="增肌时用来估蛋白质" bindinput="onWeight" />
+  </view>
+  <view class="field">
+    <text class="label">活动量</text>
+    <picker mode="selector" range="{{activities}}" value="{{activityIndex}}" bindchange="onActivity">
+      <view class="picker-value">{{activities[activityIndex]}}</view>
+    </picker>
+  </view>
+  <view class="chips">
+    <text class="chip {{mode == 'cut' ? 'on' : ''}}" data-mode="cut" bindtap="onMode">减肥</text>
+    <text class="chip {{mode == 'keep' ? 'on' : ''}}" data-mode="keep" bindtap="onMode">维持</text>
+    <text class="chip {{mode == 'gain' ? 'on' : ''}}" data-mode="gain" bindtap="onMode">增肌</text>
+  </view>
+  <button class="btn" bindtap="save">记下这个目标</button>
+  <view class="rule"></view>
+  <block wx:if="{{result}}">
+    <view class="row" wx:if="{{result.bmi}}"><text class="grow">体质指数</text><text class="num nowrap">{{result.bmi.value}} {{result.bmi.label}}</text></view>
+    <view class="row"><text class="grow">能量需要量</text><text class="num nowrap">{{result.need}} 千卡</text></view>
+    <view class="row"><text class="grow">今天建议</text><text class="num ink nowrap">{{result.energy}} 千卡</text></view>
+    <view class="row"><text class="grow">蛋白质</text><text class="num nowrap">{{result.protein}} 克</text></view>
+    <view class="row"><text class="grow">脂肪上限</text><text class="num nowrap">{{result.fat}} 克</text></view>
+    <view class="row"><text class="grow">早餐</text><text class="num nowrap">{{result.meals.breakfast}} 千卡</text></view>
+    <view class="row"><text class="grow">午餐</text><text class="num nowrap">{{result.meals.lunch}} 千卡</text></view>
+    <view class="row"><text class="grow">晚餐</text><text class="num nowrap">{{result.meals.dinner}} 千卡</text></view>
+    <view class="note">三餐按 30%、40%、30%。未满 18 岁，或 65 岁以上选高活动量，这张表不估算。体质指数按中国成人分界：18.5、24、28。</view>
+  </block>
+  <view class="empty" wx:else>填完年龄后，这里给出建议额度。</view>
+</view>
+<nav current="/pages/mine/mine"></nav>

@@ -1,0 +1,76 @@
+.tabs {
+  display: flex;
+  gap: 36rpx;
+  font-size: 32rpx;
+  color: #8a9694;
+}
+
+.tabs .on {
+  color: #14b8a6;
+  font-weight: 650;
+  border-bottom: 4rpx solid #14b8a6;
+}
+
+.day {
+  padding: 20rpx 0;
+  border-bottom: 1px solid #eef3f2;
+}
+
+.miss {
+  color: #c4a35a;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.cell {
+  width: 14.28%;
+  height: 72rpx;
+  text-align: center;
+  color: #52605e;
+}
+
+.cell.on {
+  color: #0f9f8f;
+  font-weight: 650;
+}
+
+.dot {
+  display: block;
+  width: 8rpx;
+  height: 8rpx;
+  margin: 4rpx auto 0;
+  border-radius: 50%;
+  background: #14b8a6;
+}
+
+.custom {
+  margin-top: 0;
+}
+
+.lengths {
+  display: flex;
+  gap: 20rpx;
+  margin: 20rpx 0;
+}
+
+.lengths text {
+  padding: 10rpx 22rpx;
+  border-radius: 999rpx;
+  background: #f4f8f7;
+}
+
+.lengths .on {
+  background: #14b8a6;
+  color: #ffffff;
+}
+
+.save {
+  background: #14b8a6;
+  color: #ffffff;
+  text-align: center;
+  border-radius: 999rpx;
+  padding: 18rpx 0;
+}

@@ -1,0 +1,118 @@
+<view class="page">
+  <view class="hello">
+    <view>
+      <view class="h1">今天按家里的菜来</view>
+      <view class="muted">建议一份早中晚，少吃了再记下</view>
+    </view>
+  </view>
+
+  <view class="card energy">
+    <view class="row">
+      <text>今日热量</text>
+      <text class="pill">目标 {{budget.energy || "—"}} 千卡</text>
+    </view>
+    <view class="ring-wrap">
+      <view class="ring" style="background: conic-gradient(#2ec4b6 {{ring}}%, #e7f6f3 0);">
+        <view class="ring-hole">
+          <text class="ring-num">{{eaten.energy || 0}}</text>
+          <text class="muted">已记下</text>
+        </view>
+      </view>
+    </view>
+    <view class="stats">
+      <view><text class="muted">剩余</text><text class="stat">{{remainText}}</text></view>
+      <view><text class="muted">蛋白质</text><text class="stat">{{eaten.protein}} 克</text></view>
+      <view><text class="muted">碳水</text><text class="stat">{{eaten.carb}} 克</text></view>
+    </view>
+  </view>
+
+  <view class="card pantry" bindtap="goPantry">
+    <view>
+      <view class="pantry-title">按现有食材配一整日</view>
+      <view class="muted">{{pantryText}}</view>
+    </view>
+    <text class="go">去选食材</text>
+  </view>
+
+  <view class="card controls">
+    <view class="row">
+      <text>人数</text>
+      <view class="stepper">
+        <text class="mark" data-key="people" data-delta="-1" catchtap="bump">－</text>
+        <text>{{board.people}} 人</text>
+        <text class="mark" data-key="people" data-delta="1" catchtap="bump">＋</text>
+      </view>
+    </view>
+    <view class="row">
+      <text>早餐</text>
+      <view class="stepper">
+        <text class="mark" data-key="breakfast" data-delta="-1" catchtap="bump">－</text>
+        <text>{{board.breakfast}} 道</text>
+        <text class="mark" data-key="breakfast" data-delta="1" catchtap="bump">＋</text>
+      </view>
+    </view>
+    <view class="row">
+      <text>午餐</text>
+      <view class="stepper">
+        <text class="mark" data-key="lunch" data-delta="-1" catchtap="bump">－</text>
+        <text>{{board.lunch}} 道</text>
+        <text class="mark" data-key="lunch" data-delta="1" catchtap="bump">＋</text>
+      </view>
+    </view>
+    <view class="row">
+      <text>晚餐</text>
+      <view class="stepper">
+        <text class="mark" data-key="dinner" data-delta="-1" catchtap="bump">－</text>
+        <text>{{board.dinner}} 道</text>
+        <text class="mark" data-key="dinner" data-delta="1" catchtap="bump">＋</text>
+      </view>
+    </view>
+    <view class="row shuffle">
+      <text class="muted">减肥用已复算的菜，维持和增肌用家常菜</text>
+      <text class="op" bindtap="reshuffle">换一批</text>
+    </view>
+  </view>
+
+  <view class="section-head">
+    <text>今日三餐</text>
+    <text class="muted">{{date}}</text>
+  </view>
+
+  <view class="card meal" wx:for="{{slots}}" wx:key="key">
+    <view class="meal-label">{{item.title}}</view>
+    <view class="dish" wx:for="{{item.dishes}}" wx:for-item="dish" wx:for-index="dishIndex" wx:key="id">
+      <view class="dish-main">
+        <image wx:if="{{dish.cover}}" class="thumb" src="{{dish.cover}}" mode="aspectFill" data-id="{{dish.id}}" bindtap="open"></image>
+        <view class="thumb empty" wx:else data-id="{{dish.id}}" bindtap="open"></view>
+        <view class="dish-copy" data-id="{{dish.id}}" bindtap="open">
+          <view class="name {{dish.eaten ? 'done' : ''}}">{{dish.name}}</view>
+          <view class="muted brief" wx:if="{{dish.brief}}">{{dish.brief}}</view>
+        </view>
+        <view class="kcal">
+          <text class="kcal-num">{{dish.nutrition.energy}}</text>
+          <text class="kcal-unit">千卡</text>
+        </view>
+      </view>
+      <view class="ops">
+        <text class="op" data-id="{{dish.id}}" catchtap="toTable">{{dish.onTable ? '已上桌' : '上桌'}}</text>
+        <text class="op" data-slot="{{item.key}}" data-index="{{dishIndex}}" catchtap="swap">换一道</text>
+        <text class="op" data-slot="{{item.key}}" data-id="{{dish.id}}" catchtap="eat">{{dish.eaten ? '已记下' : '记下'}}</text>
+      </view>
+    </view>
+    <view class="row meal-sum">
+      <text>这一餐</text>
+      <view class="kcal">
+        <text class="kcal-num">{{item.energy}}</text>
+        <text class="kcal-unit">千卡</text>
+      </view>
+    </view>
+  </view>
+  <view class="card">
+    <view class="row">
+      <text class="grow">{{people}} 人合计</text>
+      <text class="ink nowrap">{{dayTotal}} 千卡</text>
+    </view>
+    <text class="op" bindtap="goTable">整桌放上餐桌</text>
+  </view>
+</view>
+<nav current="/pages/today/today"></nav>

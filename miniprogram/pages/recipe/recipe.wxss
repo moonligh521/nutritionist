@@ -1,0 +1,29 @@
+.kcal-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+  margin-top: 8rpx;
+}
+
+.kcal-hero .kcal-num {
+  font-size: 72rpx;
+}
+
+.line {
+  display: block;
+  padding: 16rpx 0;
+  border-bottom: 1px solid #eef3f2;
+}
+
+.food {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 12rpx;
+  background: #e7f6f3;
+  margin-right: 12rpx;
+}
+
+.step {
+  margin-top: 12rpx;
+  font-size: 30rpx;
+}

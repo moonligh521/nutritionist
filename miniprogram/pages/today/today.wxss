@@ -1,0 +1,179 @@
+.hello {
+  padding-top: 8rpx;
+}
+
+.pill {
+  color: #0f9f8f;
+  background: #e7f8f5;
+  border-radius: 999rpx;
+  padding: 6rpx 16rpx;
+  font-size: 22rpx;
+}
+
+.energy {
+  text-align: left;
+}
+
+.ring-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 20rpx 0 8rpx;
+}
+
+.ring {
+  width: 280rpx;
+  height: 280rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-hole {
+  width: 210rpx;
+  height: 210rpx;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-num {
+  font-size: 64rpx;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.stats {
+  display: flex;
+  margin-top: 12rpx;
+  border-top: 1px solid #eef3f2;
+}
+
+.stats view {
+  flex: 1;
+  text-align: center;
+  padding-top: 16rpx;
+}
+
+.stat {
+  display: block;
+  margin-top: 6rpx;
+}
+
+.pantry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #14b8a6;
+  color: #ffffff;
+}
+
+.pantry .muted,
+.pantry-title {
+  color: #ffffff;
+}
+
+.pantry-title {
+  font-size: 32rpx;
+  font-weight: 650;
+}
+
+.go {
+  color: #ffffff;
+  font-size: 26rpx;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  margin: 28rpx 8rpx 0;
+  font-weight: 650;
+}
+
+.meal {
+  padding-bottom: 8rpx;
+}
+
+.meal-label {
+  color: #0f9f8f;
+  font-size: 24rpx;
+}
+
+.dish {
+  padding: 20rpx 0 12rpx;
+  border-bottom: 1px solid #eef3f2;
+}
+
+.dish-main {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.dish-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.thumb {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 16rpx;
+  background: #e7f6f3;
+  flex-shrink: 0;
+}
+
+.name {
+  font-size: 32rpx;
+  line-height: 1.35;
+}
+
+.brief {
+  margin-top: 4rpx;
+  line-height: 1.4;
+}
+
+.done {
+  color: #8a9694;
+  text-decoration: line-through;
+}
+
+.ops {
+  display: flex;
+  justify-content: flex-end;
+  gap: 28rpx;
+  margin-top: 12rpx;
+}
+
+.op {
+  color: #0f9f8f;
+  font-size: 26rpx;
+  line-height: 1.4;
+}
+
+.controls .row {
+  padding: 8rpx 0;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.stepper .mark {
+  width: 48rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #e7f8f5;
+  color: #0f9f8f;
+}
+
+.shuffle {
+  margin-top: 8rpx;
+}

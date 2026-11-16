@@ -1,0 +1,22 @@
+.nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 16rpx 12rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: #ffffff;
+  border-top: 1px solid #e6eeec;
+  z-index: 5;
+}
+
+.nav-item {
+  color: #8a9694;
+  font-size: 24rpx;
+}
+
+.nav-item.on {
+  color: #14b8a6;
+  font-weight: 600;
+}

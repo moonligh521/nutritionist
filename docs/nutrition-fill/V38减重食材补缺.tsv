@@ -1,0 +1,84 @@
+food_id	name	nutrient_code	amount	source	action
+1	大米	12	11.62	USDA_FDC:168877 Rice, white, long-grain, regular, raw, enriched	fill
+1	大米	13	0.11	USDA_FDC:168877 Rice, white, long-grain, regular, raw, enriched	fill
+1	大米	14	28	USDA_FDC:168877 Rice, white, long-grain, regular, raw, enriched	fill
+28	面条	12	9.01	USDA_FDC:169731 Noodles, egg, dry, enriched	fill
+28	面条	13	0.37	USDA_FDC:169731 Noodles, egg, dry, enriched	fill
+28	面条	14	35	USDA_FDC:169731 Noodles, egg, dry, enriched	fill
+42	全麦面包	12	39.01	USDA_FDC:172688 Bread, whole-wheat, commercially prepared	fill
+42	全麦面包	13	2.66	USDA_FDC:172688 Bread, whole-wheat, commercially prepared	fill
+42	全麦面包	14	161	USDA_FDC:172688 Bread, whole-wheat, commercially prepared	fill
+54	燕麦片	9	0	USDA_FDC:173904 Cereals, oats, regular and quick, not fortified, dry	fill
+54	燕麦片	10	1.11	USDA_FDC:173904 Cereals, oats, regular and quick, not fortified, dry	fill
+78	小白菜	12	95.32	USDA_FDC:170390 Cabbage, chinese (pak-choi), raw	fill
+78	小白菜	13	0.09	USDA_FDC:170390 Cabbage, chinese (pak-choi), raw	fill
+78	小白菜	14	105	USDA_FDC:170390 Cabbage, chinese (pak-choi), raw	fill
+93	西兰花	12	89.3	USDA_FDC:170379 Broccoli, raw	fill
+93	西兰花	13	0.78	USDA_FDC:170379 Broccoli, raw	fill
+93	西兰花	14	47	USDA_FDC:170379 Broccoli, raw	fill
+99	菠菜	12	91.4	USDA_FDC:168462 Spinach, raw	fill
+99	菠菜	13	2.03	USDA_FDC:168462 Spinach, raw	fill
+99	菠菜	14	99	USDA_FDC:168462 Spinach, raw	fill
+132	胡萝卜	12	88.29	USDA_FDC:170393 Carrots, raw	fill
+132	胡萝卜	13	0.66	USDA_FDC:170393 Carrots, raw	fill
+132	胡萝卜	14	33	USDA_FDC:170393 Carrots, raw	fill
+138	西红柿	12	94.52	USDA_FDC:170457 Tomatoes, red, ripe, raw, year round average	fill
+138	西红柿	13	0.54	USDA_FDC:170457 Tomatoes, red, ripe, raw, year round average	fill
+138	西红柿	14	10	USDA_FDC:170457 Tomatoes, red, ripe, raw, year round average	fill
+154	黄瓜	12	95.23	USDA_FDC:168409 Cucumber, with peel, raw	fill
+154	黄瓜	13	0.03	USDA_FDC:168409 Cucumber, with peel, raw	fill
+154	黄瓜	14	16	USDA_FDC:168409 Cucumber, with peel, raw	fill
+186	大葱	12	90.5	USDA_FDC:170007 Onions, welsh, raw	fill
+186	大葱	13	0.51	USDA_FDC:170007 Onions, welsh, raw	fill
+186	大葱	14	18	USDA_FDC:170007 Onions, welsh, raw	fill
+191	大蒜	12	58.58	USDA_FDC:169230 Garlic, raw	fill
+191	大蒜	13	0.08	USDA_FDC:169230 Garlic, raw	fill
+191	大蒜	14	181	USDA_FDC:169230 Garlic, raw	fill
+198	生姜	12	78.89	USDA_FDC:169231 Ginger root, raw	fill
+198	生姜	13	0.26	USDA_FDC:169231 Ginger root, raw	fill
+198	生姜	14	16	USDA_FDC:169231 Ginger root, raw	fill
+257	苹果	12	85.56	USDA_FDC:171688 Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)	fill
+257	苹果	13	0.18	USDA_FDC:171688 Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)	fill
+257	苹果	14	6	USDA_FDC:171688 Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)	fill
+310	香蕉	12	74.91	USDA_FDC:173944 Bananas, raw	fill
+310	香蕉	13	0.1	USDA_FDC:173944 Bananas, raw	fill
+310	香蕉	14	5	USDA_FDC:173944 Bananas, raw	fill
+405	鸡胸肉	1	117	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+405	鸡胸肉	2	23.3	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+405	鸡胸肉	3	0.6	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+405	鸡胸肉	4	1.9	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+405	鸡胸肉	5	0	USDA_FDC:171077 Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw	fill
+405	鸡胸肉	6	33	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+405	鸡胸肉	7	333	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+405	鸡胸肉	8	239	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+405	鸡胸肉	9	70	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+405	鸡胸肉	10	0.6	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+405	鸡胸肉	12	73	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+405	鸡胸肉	13	0.23	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+405	鸡胸肉	14	4	TFDA:I0402402 去皮清肉(肉鸡)，生，鸡胸部位	replace
+449	草鱼	1	91	TFDA:J0401401 草鱼(含皮)，生	replace
+449	草鱼	2	17.2	TFDA:J0401401 草鱼(含皮)，生	replace
+449	草鱼	3	0.8	TFDA:J0401401 草鱼(含皮)，生	replace
+449	草鱼	4	2	TFDA:J0401401 草鱼(含皮)，生	replace
+449	草鱼	6	37	TFDA:J0401401 草鱼(含皮)，生	replace
+449	草鱼	7	376	TFDA:J0401401 草鱼(含皮)，生	replace
+449	草鱼	8	201	TFDA:J0401401 草鱼(含皮)，生	replace
+449	草鱼	9	36	TFDA:J0401401 草鱼(含皮)，生	replace
+449	草鱼	10	0.5	TFDA:J0401401 草鱼(含皮)，生	replace
+449	草鱼	12	78.8	TFDA:J0401401 草鱼(含皮)，生	replace
+449	草鱼	13	0.4	TFDA:J0401401 草鱼(含皮)，生	replace
+449	草鱼	14	63	TFDA:J0401401 草鱼(含皮)，生	replace
+580	鸡蛋	12	76.15	USDA_FDC:171287 Egg, whole, raw, fresh	fill
+580	鸡蛋	13	1.05	USDA_FDC:171287 Egg, whole, raw, fresh	fill
+580	鸡蛋	14	56	USDA_FDC:171287 Egg, whole, raw, fresh	fill
+590	牛奶	12	88.13	USDA_FDC:172217 Milk, whole, 3.25% milkfat, without added vitamin A and vitamin D	fill
+590	牛奶	13	0.07	USDA_FDC:172217 Milk, whole, 3.25% milkfat, without added vitamin A and vitamin D	fill
+590	牛奶	14	113	USDA_FDC:172217 Milk, whole, 3.25% milkfat, without added vitamin A and vitamin D	fill
+606	北豆腐	12	69.83	USDA_FDC:172475 Tofu, raw, firm, prepared with calcium sulfate	fill
+606	北豆腐	14	683	USDA_FDC:172475 Tofu, raw, firm, prepared with calcium sulfate	fill
+654	菜籽油	12	0	USDA_FDC:172336 Oil, canola	fill
+654	菜籽油	13	17.46	USDA_FDC:172336 Oil, canola	fill
+654	菜籽油	14	0	USDA_FDC:172336 Oil, canola	fill
+672	生抽	12	71.15	USDA_FDC:174277 Soy sauce made from soy and wheat (shoyu)	fill
+672	生抽	13	0	USDA_FDC:174277 Soy sauce made from soy and wheat (shoyu)	fill
+672	生抽	14	33	USDA_FDC:174277 Soy sauce made from soy and wheat (shoyu)	fill

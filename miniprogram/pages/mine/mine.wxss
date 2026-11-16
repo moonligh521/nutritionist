@@ -1,0 +1,20 @@
+.banner {
+  background: #14b8a6;
+  color: #ffffff;
+  border-radius: 28rpx;
+  padding: 36rpx 28rpx;
+}
+
+.sub {
+  opacity: 0.9;
+  font-size: 24rpx;
+}
+
+.link {
+  padding: 26rpx 0;
+  border-bottom: 1px solid #eef3f2;
+}
+
+.link:last-child {
+  border-bottom: 0;
+}

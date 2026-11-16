@@ -17,6 +17,7 @@ import com.moonligh.nutritionist.domain.profile.InMemoryProfileRepository;
 import com.moonligh.nutritionist.domain.nutrition.IngredientNutritionCalculator;
 import com.moonligh.nutritionist.domain.nutrition.NutrientType;
 import com.moonligh.nutritionist.domain.nutrition.StapleFoods;
+import com.moonligh.nutritionist.domain.nutrition.WeightLossFoods;
 import com.moonligh.nutritionist.domain.safety.DiabetesDietInitialization;
 import com.moonligh.nutritionist.infrastructure.identity.FakePatientGateway;
 import com.moonligh.nutritionist.infrastructure.persistence.InMemoryPatientBindingStore;
@@ -98,12 +99,17 @@ class DiabetesPlanningTest {
                 "pat-1", "pv1", "profile-1", "pantry-1", 1, 1, LocalDate.parse("2026-11-11"), "Asia/Shanghai", 2));
         BigDecimal carbohydrate = BigDecimal.ZERO;
         for (MealPlan.Dish dish : plan.dishes()) {
-            MealPlan.IngredientGrams ingredient = dish.ingredients().getFirst();
-            carbohydrate = carbohydrate.add(new IngredientNutritionCalculator()
-                    .calculate(StapleFoods.find(ingredient.foodItemId()), ingredient.grams()).stream()
-                    .filter(nutrient -> nutrient.type() == NutrientType.CARBOHYDRATE && nutrient.value() != null)
-                    .map(nutrient -> nutrient.value())
-                    .reduce(BigDecimal.ZERO, BigDecimal::add));
+            for (MealPlan.IngredientGrams ingredient : dish.ingredients()) {
+                var food = StapleFoods.find(ingredient.foodItemId());
+                if (food == null) {
+                    food = WeightLossFoods.find(ingredient.foodItemId());
+                }
+                carbohydrate = carbohydrate.add(new IngredientNutritionCalculator()
+                        .calculate(food, ingredient.grams()).stream()
+                        .filter(nutrient -> nutrient.type() == NutrientType.CARBOHYDRATE && nutrient.value() != null)
+                        .map(nutrient -> nutrient.value())
+                        .reduce(BigDecimal.ZERO, BigDecimal::add));
+            }
         }
 
         assertTrue(carbohydrate.compareTo(new BigDecimal("90")) <= 0);
