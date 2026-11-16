@@ -60,14 +60,16 @@ public final class HybridRecall {
         return rrf(rankings, CANDIDATE_LIMIT);
     }
 
-    /** 召回为空或对不上菜号时，退回全部已发布菜，再做主料门槛。 */
+    /**
+     * 召回为空时保留全部已发布菜（无过滤意图）。
+     * 召回非空但对不上已发布菜号时返回空，不再退回全库。
+     */
     public static List<Dish> pool(List<Dish> dishes, List<String> recalledIds) {
         if (dishes == null || dishes.isEmpty() || recalledIds == null || recalledIds.isEmpty()) {
             return dishes == null ? List.of() : dishes;
         }
         Set<String> wanted = new LinkedHashSet<>(recalledIds);
-        List<Dish> kept = dishes.stream().filter(dish -> wanted.contains(dish.id())).toList();
-        return kept.isEmpty() ? dishes : kept;
+        return dishes.stream().filter(dish -> wanted.contains(dish.id())).toList();
     }
 
     static List<String> rrf(List<List<String>> rankings, int limit) {
