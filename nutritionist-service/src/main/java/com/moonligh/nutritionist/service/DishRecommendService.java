@@ -13,6 +13,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.moonligh.nutritionist.domain.recommend.HybridRecall;
 import com.moonligh.nutritionist.domain.recommend.IngredientDishRanker;
+import com.moonligh.nutritionist.domain.recommend.RecipeIntent;
+import com.moonligh.nutritionist.domain.recommend.RecipeVectorFilter;
 import com.moonligh.nutritionist.domain.recommend.RecipeVectorizer;
 import com.moonligh.nutritionist.infrastructure.persistence.SearchChunkMapper;
 import com.moonligh.nutritionist.infrastructure.vector.MilvusRecipeIndex;
@@ -86,20 +88,29 @@ public class DishRecommendService {
     }
 
     public MatchReport match(List<String> foods, String origin, String text) {
+        return match(foods, origin, text, List.of());
+    }
+
+    public MatchReport match(List<String> foods, String origin, String text, List<String> conditions) {
         Normalized normalized = normalize(foods, origin);
-        return matchIds(normalized.ids(), normalized.unrecognized(), origin, text);
+        return matchIds(normalized.ids(), normalized.unrecognized(), origin, text, conditions);
     }
 
     /** 编号已经确定后再检索，避免同一句话被解析两次。 */
     public MatchReport matchIds(List<String> ids, List<String> unrecognized, String origin) {
-        return matchIds(ids, unrecognized, origin, "");
+        return matchIds(ids, unrecognized, origin, "", List.of());
+    }
+
+    public MatchReport matchIds(List<String> ids, List<String> unrecognized, String origin, String text) {
+        return matchIds(ids, unrecognized, origin, text, List.of());
     }
 
     /**
-     * text 只用来缩小候选，例如「川菜」「减肥」。
-     * 主料必须齐全这条规则不变。没有这句话时，仍按全部已发布菜排序。
+     * text / conditions 用来缩小候选，例如「川菜」「减肥」「控糖」。
+     * 主料必须齐全这条规则不变。没有点名和模糊词时，仍按全部已发布菜排序。
      */
-    public MatchReport matchIds(List<String> ids, List<String> unrecognized, String origin, String text) {
+    public MatchReport matchIds(
+            List<String> ids, List<String> unrecognized, String origin, String text, List<String> conditions) {
         CatalogBrowse.CatalogSnapshot snapshot = catalog.snapshot(origin);
         Set<String> owned = new LinkedHashSet<>();
         if (ids != null) {
@@ -109,7 +120,7 @@ public class DishRecommendService {
         for (CatalogBrowse.RecipeView recipe : snapshot.recipes()) {
             dishes.add(toDish(recipe, snapshot));
         }
-        dishes = narrow(dishes, text);
+        dishes = narrow(dishes, text, conditions);
         List<Match> ranked = IngredientDishRanker.top(owned, dishes).stream()
                 .filter(match -> verify(owned, match))
                 .toList();
@@ -162,48 +173,54 @@ public class DishRecommendService {
                 .orElse(false);
     }
 
-    private List<Dish> narrow(List<Dish> dishes, String text) {
-        if (text == null || text.isBlank() || chunks == null) {
+    private List<Dish> narrow(List<Dish> dishes, String text, List<String> conditions) {
+        RecipeIntent intent = RecipeIntent.parse(text, conditions);
+        String filter = RecipeVectorFilter.expr(
+                intent.cuisine(), intent.kind(), intent.preferTags(), intent.conditions());
+        boolean hasFilter = filter != null && !filter.isBlank();
+        if (!hasFilter && !intent.fuzzy()) {
             return dishes;
         }
         try {
-            List<HybridRecall.Chunk> stored = new ArrayList<>();
-            for (SearchChunkMapper.ChunkRow row : chunks.all()) {
-                stored.add(new HybridRecall.Chunk(row.recipeId(), row.documentText(), vector(row.embeddingJson())));
+            if (hasFilter && !intent.fuzzy()) {
+                if (vectors == null) {
+                    return List.of();
+                }
+                List<String> ids = vectors.query(filter, HybridRecall.CANDIDATE_LIMIT);
+                if (ids == null || ids.isEmpty()) {
+                    return List.of();
+                }
+                return HybridRecall.pool(dishes, ids);
             }
-            float[] query = embedding == null ? null : embedding.embed(text);
-            List<String> byWord = HybridRecall.recall(text, stored, null);
-            List<String> byVector = vectors == null || query == null ? List.of() : vectors.search(query, "", HybridRecall.CANDIDATE_LIMIT);
+            List<HybridRecall.Chunk> stored = new ArrayList<>();
+            if (chunks != null) {
+                for (SearchChunkMapper.ChunkRow row : chunks.all()) {
+                    stored.add(new HybridRecall.Chunk(
+                            row.recipeId(), row.documentText(), RecipeVectorizer.fromJson(row.embeddingJson())));
+                }
+            }
+            String fuzzy = intent.fuzzyText();
+            float[] query = embedding == null ? null : embedding.embed(fuzzy);
+            List<String> byWord = HybridRecall.recall(fuzzy, stored, null);
+            List<String> byVector = vectors == null || query == null
+                    ? List.of()
+                    : vectors.search(query, filter, HybridRecall.CANDIDATE_LIMIT);
             List<String> merged = byVector.isEmpty()
-                    ? HybridRecall.recall(text, stored, query)
+                    ? HybridRecall.recall(fuzzy, stored, query)
                     : HybridRecall.merge(byWord, byVector);
+            if (hasFilter) {
+                if (merged == null || merged.isEmpty()) {
+                    return List.of();
+                }
+                return HybridRecall.pool(dishes, merged);
+            }
+            if (merged == null || merged.isEmpty()) {
+                return dishes;
+            }
             return HybridRecall.pool(dishes, merged);
         } catch (RuntimeException error) {
-            // 向量表还没建好时，退回原来的全量主料判断。
-            return dishes;
+            return hasFilter ? List.of() : dishes;
         }
-    }
-
-    private static float[] vector(String json) {
-        if (json == null || json.isBlank()) {
-            return null;
-        }
-        String body = json.trim();
-        if (body.startsWith("[")) {
-            body = body.substring(1);
-        }
-        if (body.endsWith("]")) {
-            body = body.substring(0, body.length() - 1);
-        }
-        if (body.isBlank()) {
-            return null;
-        }
-        String[] parts = body.split(",");
-        float[] values = new float[parts.length];
-        for (int index = 0; index < parts.length; index++) {
-            values[index] = Float.parseFloat(parts[index].trim());
-        }
-        return values;
     }
 
     private Dish toDish(CatalogBrowse.RecipeView recipe, CatalogBrowse.CatalogSnapshot snapshot) {
