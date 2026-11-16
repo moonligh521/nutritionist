@@ -47,7 +47,7 @@ class RecipeVectorLiveSmokeIT {
         String portText = capture(vectorBlock, "(?m)^\\s*port:\\s*(\\d+)");
         VectorProperties props = new VectorProperties();
         props.setEnabled(true);
-        props.setHost(host == null || host.isBlank() ? "154.8.23.238" : host.trim());
+        props.setHost(host == null || host.isBlank() ? "154.8.236.238" : host.trim());
         props.setPort(portText == null ? 19530 : Integer.parseInt(portText.trim()));
         props.setApiKey(apiKey.trim());
 

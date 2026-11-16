@@ -23,6 +23,6 @@ model:
   fallback-api-key: ""
 consult:
   vector:
-    host: 154.8.23.238
+    host: 154.8.236.238
     port: 19530
     api-key: "replace-with-dashscope-embedding-key"
