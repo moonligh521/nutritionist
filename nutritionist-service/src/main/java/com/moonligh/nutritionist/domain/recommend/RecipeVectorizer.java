@@ -79,6 +79,28 @@ public final class RecipeVectorizer {
         return json.toString();
     }
 
+    public static float[] fromJson(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        String body = json.trim();
+        if (body.startsWith("[")) {
+            body = body.substring(1);
+        }
+        if (body.endsWith("]")) {
+            body = body.substring(0, body.length() - 1);
+        }
+        if (body.isBlank()) {
+            return null;
+        }
+        String[] parts = body.split(",");
+        float[] vector = new float[parts.length];
+        for (int index = 0; index < parts.length; index++) {
+            vector[index] = Float.parseFloat(parts[index].trim());
+        }
+        return vector;
+    }
+
     /** 一行文本变成一个向量。没有密钥或调用失败时返回 null，表仍可按关键词查找。 */
     public interface TextEmbedding {
         float[] embed(String text);

@@ -24,6 +24,13 @@ public class MilvusRecipeIndex {
     }
 
     public void upsert(RecipeVectorizer.Stored stored) {
+        if (stored == null || !stored.published()) {
+            return;
+        }
+        float[] vector = RecipeVectorizer.fromJson(stored.embeddingJson());
+        if (vector == null) {
+            return;
+        }
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("version", stored.version() == null ? "" : stored.version());
         fields.put("kind", stored.kind() == null ? "" : stored.kind());
@@ -31,10 +38,14 @@ public class MilvusRecipeIndex {
         fields.put("prefer_tags", RecipeVectorFilter.wrap(stored.preferTags()));
         fields.put("suitable", RecipeVectorFilter.wrap(stored.suitable()));
         fields.put("unsuitable", RecipeVectorFilter.wrap(stored.unsuitable()));
-        vectors.save(new VectorDocument(COLLECTION, stored.id(), fields, stored.document()));
+        vectors.save(new VectorDocument(COLLECTION, stored.id(), fields, stored.document(), vector));
     }
 
     public List<String> search(float[] vector, String filter, int limit) {
         return vectors.search(COLLECTION, vector, filter, limit);
+    }
+
+    public List<String> query(String filter, int limit) {
+        return vectors.query(COLLECTION, filter, limit);
     }
 }
