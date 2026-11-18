@@ -86,9 +86,10 @@ public class CatalogController {
     public Result<DishRecommendService.MatchReport> matches(
             @RequestParam(required = false) List<String> foods,
             @RequestParam(required = false) String text,
-            HttpServletRequest request) {
-        String origin = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
-        return Result.ok(dishRecommend.match(foods, origin, text));
+            @RequestParam(required = false) String cuisine,
+            @RequestParam(required = false) String kind,
+            @RequestParam(required = false) List<String> conditions) {
+        return Result.ok(dishRecommend.match(foods, text, cuisine, kind, conditions));
     }
 
     @GetMapping("/day")

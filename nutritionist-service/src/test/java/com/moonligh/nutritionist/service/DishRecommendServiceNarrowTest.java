@@ -1,5 +1,6 @@
 package com.moonligh.nutritionist.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -12,6 +13,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.moonligh.nutritionist.domain.recommend.RecallEmptyReason;
 import com.moonligh.nutritionist.infrastructure.persistence.SearchChunkMapper;
 import com.moonligh.nutritionist.infrastructure.vector.MilvusRecipeIndex;
 
@@ -23,6 +25,7 @@ class DishRecommendServiceNarrowTest {
         SearchChunkMapper chunks = mock(SearchChunkMapper.class);
         MilvusRecipeIndex vectors = mock(MilvusRecipeIndex.class);
         DishCardCache cards = mock(DishCardCache.class);
+        when(catalog.coreSnapshot()).thenReturn(snapshot());
         when(catalog.snapshot("")).thenReturn(snapshot());
         when(chunks.all()).thenReturn(List.of());
         when(vectors.query(anyString(), anyInt())).thenReturn(List.of());
@@ -31,6 +34,7 @@ class DishRecommendServiceNarrowTest {
         DishRecommendService.MatchReport report = service.matchIds(
                 List.of("138", "580"), List.of(), "", "川菜", List.of());
         assertTrue(report.dishes().isEmpty());
+        assertEquals(RecallEmptyReason.SCALAR_EMPTY, report.emptyReason());
     }
 
     @Test
@@ -39,6 +43,7 @@ class DishRecommendServiceNarrowTest {
         SearchChunkMapper chunks = mock(SearchChunkMapper.class);
         MilvusRecipeIndex vectors = mock(MilvusRecipeIndex.class);
         DishCardCache cards = mock(DishCardCache.class);
+        when(catalog.coreSnapshot()).thenReturn(snapshot());
         when(catalog.snapshot("")).thenReturn(snapshot());
         when(chunks.all()).thenReturn(List.of());
         when(vectors.query(eq("cuisine == \"川菜\""), anyInt())).thenReturn(List.of("sichuan"));

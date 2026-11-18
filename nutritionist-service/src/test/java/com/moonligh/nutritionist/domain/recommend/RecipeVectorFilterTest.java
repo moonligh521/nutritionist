@@ -10,13 +10,13 @@ import org.junit.jupiter.api.Test;
 class RecipeVectorFilterTest {
 
     @Test
-    void cuisineIsExactAndDiseaseMustBeMarkedSuitable() {
+    void cuisineIsExactAndDiseaseUsesArrayContains() {
         String expr = RecipeVectorFilter.expr("川菜", "", List.of("减肥"), List.of("控糖", "低嘌呤"));
         assertTrue(expr.contains("cuisine == \"川菜\""));
-        assertTrue(expr.contains("prefer_tags like \"%,减肥,%\""));
-        assertTrue(expr.contains("suitable like \"%,控糖,%\""));
-        assertTrue(expr.contains("unsuitable not like \"%,控糖,%\""));
-        assertTrue(expr.contains("suitable like \"%,低嘌呤,%\""));
-        assertEquals(",减肥,减脂,", RecipeVectorFilter.wrap("减肥;减脂"));
+        assertTrue(expr.contains("array_contains(prefer_tags, \"减肥\")"));
+        assertTrue(expr.contains("array_contains(suitable, \"控糖\")"));
+        assertTrue(expr.contains("not array_contains(unsuitable, \"控糖\")"));
+        assertTrue(expr.contains("array_contains(suitable, \"低嘌呤\")"));
+        assertEquals(List.of("减肥", "减脂"), RecipeVectorFilter.tags("减肥;减脂"));
     }
 }

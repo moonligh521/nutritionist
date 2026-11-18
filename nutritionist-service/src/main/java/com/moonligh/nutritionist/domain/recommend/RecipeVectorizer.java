@@ -12,6 +12,7 @@ public final class RecipeVectorizer {
 
     public record Stored(
             String id,
+            String name,
             String version,
             String document,
             String embeddingJson,
@@ -51,6 +52,7 @@ public final class RecipeVectorizer {
             }
             save.accept(new Stored(
                     row.id(),
+                    row.name(),
                     "1",
                     row.document(),
                     json,

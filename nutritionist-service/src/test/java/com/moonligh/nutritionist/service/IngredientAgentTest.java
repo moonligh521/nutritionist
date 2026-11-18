@@ -27,7 +27,7 @@ class IngredientAgentTest {
         IngredientAgent.Turn turn = agent.run(List.of("番茄", "鸡蛋"), null);
 
         assertEquals(List.of("normalize_ingredients", "search_dishes"), turn.toolCalls());
-        assertEquals("wl-egg-tomato", turn.dishes().getFirst().id());
+        assertEquals("7", turn.dishes().getFirst().id());
         assertTrue(!turn.explanation().isBlank());
     }
 
@@ -73,7 +73,7 @@ class IngredientAgentTest {
         ModelCompletion model = prompt -> {
             prompts.add(prompt);
             if (prompts.size() == 1) {
-                return Optional.of("{\"tool\":\"read_recipe\",\"id\":\"wl-egg-tomato\"}");
+                return Optional.of("{\"tool\":\"read_recipe\",\"id\":\"7\"}");
             }
             return Optional.of("{\"explanation\":\"按做法来\",\"items\":[]}");
         };
@@ -135,7 +135,7 @@ class IngredientAgentTest {
         IngredientAgent.Turn turn = agent.run(List.of("番茄", "鸡蛋"), null, "");
 
         assertEquals(List.of("normalize_ingredients", "search_dishes"), turn.toolCalls());
-        assertEquals("wl-egg-tomato", turn.dishes().getFirst().id());
+        assertEquals("7", turn.dishes().getFirst().id());
         assertTrue(turn.explanation().contains("模型超时"));
         assertTrue(turn.explanation().contains("主料都有"));
     }
@@ -192,24 +192,24 @@ class IngredientAgentTest {
             if (ids.isEmpty()) {
                 return new MatchReport(List.of(), List.of(), "没有主料齐全的已发布菜，不会另外编一道。");
             }
-            Suggestion dish = new Suggestion("wl-egg-tomato", "番茄炒蛋", 250, 100, "主料都有：鸡蛋、西红柿。", "", "步骤");
+            Suggestion dish = new Suggestion("7", "番茄炒蛋", 250, 100, "主料都有：鸡蛋、西红柿。", "", "步骤");
             return new MatchReport(List.of(dish), List.of(), "");
         }
 
         @Override
         public IngredientAgent.SolveOutcome solve(IngredientAgent.Profile profile, List<String> ids) {
             DayMenu day = new DayMenu(1743, List.of(), List.of(), List.of(
-                    new DishView("wl-egg-tomato", BigDecimal.ONE, 250, List.of(
+                    new DishView("7", BigDecimal.ONE, 250, List.of(
                             new IngredientView("138", "西红柿", new BigDecimal("200"))))));
             return new IngredientAgent.SolveOutcome(true, "", day);
         }
 
         @Override
         public String readRecipe(String id) {
-            if (!"wl-egg-tomato".equals(id)) {
+            if (!"7".equals(id)) {
                 return "{\"found\":false}";
             }
-            return "{\"id\":\"wl-egg-tomato\",\"step\":\"西红柿切块\"}";
+            return "{\"id\":\"7\",\"step\":\"西红柿切块\"}";
         }
 
         @Override

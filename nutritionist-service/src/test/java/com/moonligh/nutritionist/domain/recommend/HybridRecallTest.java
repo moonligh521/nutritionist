@@ -28,9 +28,10 @@ class HybridRecallTest {
     }
 
     @Test
-    void emptyRecallKeepsAll() {
+    void emptyRecallReturnsEmptyNotAllPublished() {
         Dish a = dish("a");
-        assertEquals(1, HybridRecall.pool(List.of(a), List.of()).size());
+        assertTrue(HybridRecall.pool(List.of(a), List.of()).isEmpty());
+        assertTrue(HybridRecall.pool(List.of(a), null).isEmpty());
     }
 
     private static Dish dish(String id) {

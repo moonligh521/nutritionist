@@ -49,4 +49,16 @@ class TwoModelChainTest {
 
         assertTrue(chain.complete("说明").isEmpty());
     }
+
+    @Test
+    void zeroTimeoutRetriesSkipsPrimaryRetry() {
+        List<String> called = new ArrayList<>();
+        TwoModelChain chain = new TwoModelChain(prompt -> {
+            called.add("primary");
+            return Outcome.timeout();
+        }, null, 0);
+
+        assertTrue(chain.complete("说明").isEmpty());
+        assertEquals(List.of("primary"), called);
+    }
 }

@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.DefaultApplicationArguments;
 
 import com.moonligh.nutritionist.domain.recommend.RecipeVectorizer;
 import com.moonligh.nutritionist.infrastructure.persistence.SearchChunkMapper;
@@ -20,8 +19,10 @@ class PublishedChunkSeederTest {
     void seedsMysqlOnly() {
         CatalogBrowse catalog = mock(CatalogBrowse.class);
         SearchChunkMapper chunks = mock(SearchChunkMapper.class);
+        SearchChunkIndex chunkIndex = mock(SearchChunkIndex.class);
+        PublishedCatalogIndex catalogIndex = mock(PublishedCatalogIndex.class);
         when(chunks.all()).thenReturn(List.of());
-        when(catalog.snapshot("")).thenReturn(new CatalogBrowse.CatalogSnapshot(
+        when(catalog.coreSnapshot()).thenReturn(new CatalogBrowse.CatalogSnapshot(
                 List.of(),
                 List.of(new CatalogBrowse.RecipeView(
                         "r1",
@@ -33,8 +34,11 @@ class PublishedChunkSeederTest {
                         List.of(new CatalogBrowse.IngredientView("138", "番茄", new BigDecimal("100"), "")),
                         new CatalogBrowse.NutritionView(null, null, null, null, null, null)))));
         RecipeVectorizer.TextEmbedding embedding = text -> new float[] {0.1f, 0.2f};
-        PublishedChunkSeeder seeder = new PublishedChunkSeeder(catalog, chunks, embedding);
-        seeder.run(new DefaultApplicationArguments(new String[0]));
+        PublishedChunkSeeder seeder = new PublishedChunkSeeder(
+                catalog, chunks, embedding, chunkIndex, catalogIndex);
+        seeder.sync();
         verify(chunks).upsert(anyString(), anyString(), anyString(), anyString());
+        verify(chunkIndex).invalidate();
+        verify(catalogIndex).invalidate();
     }
 }

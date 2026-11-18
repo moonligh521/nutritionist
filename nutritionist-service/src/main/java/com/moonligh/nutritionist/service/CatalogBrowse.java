@@ -2,6 +2,7 @@ package com.moonligh.nutritionist.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,6 +11,8 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import com.moonligh.nutritionist.domain.nutrition.FoodNutrientProfile;
+import com.moonligh.nutritionist.domain.nutrition.FoodNutrientTable;
 import com.moonligh.nutritionist.infrastructure.persistence.CatalogMapper;
 
 /** 小程序目录从数据库读取已发布菜谱，并按食材成分表复算热量。 */
@@ -24,37 +27,96 @@ public class CatalogBrowse {
     private static final int SODIUM = 6;
     private static final int OIL = 14;
     private static final int SEASONING = 15;
+    private static final long SNAPSHOT_TTL_MS = Duration.ofMinutes(5).toMillis();
 
     private final CatalogMapper catalogMapper;
+    private final Object snapshotLock = new Object();
+    private volatile CachedCore cached;
 
     public CatalogBrowse(CatalogMapper catalogMapper) {
         this.catalogMapper = catalogMapper;
     }
 
+    /** 检索/归一化用：不含请求 host，避免与目录 API 抢缓存。 */
+    public CatalogSnapshot coreSnapshot() {
+        return core().snapshot();
+    }
+
+    public void invalidate() {
+        synchronized (snapshotLock) {
+            cached = null;
+        }
+    }
+
     public CatalogSnapshot snapshot(String origin) {
-        Map<String, FoodRow> foods = new LinkedHashMap<>();
+        CatalogSnapshot core = coreSnapshot();
+        String key = origin == null ? "" : origin;
+        if (key.isBlank()) {
+            return core;
+        }
+        return withOrigin(core, key);
+    }
+
+    private CachedCore core() {
+        long now = System.currentTimeMillis();
+        CachedCore hit = cached;
+        if (hit != null && now - hit.loadedAtMs() < SNAPSHOT_TTL_MS) {
+            return hit;
+        }
+        synchronized (snapshotLock) {
+            hit = cached;
+            now = System.currentTimeMillis();
+            if (hit != null && now - hit.loadedAtMs() < SNAPSHOT_TTL_MS) {
+                return hit;
+            }
+            CatalogSnapshot loaded = loadSnapshot("");
+            cached = new CachedCore(loaded, now);
+            return cached;
+        }
+    }
+
+    private static CatalogSnapshot withOrigin(CatalogSnapshot core, String origin) {
+        List<FoodView> foods = core.foods().stream()
+                .map(food -> new FoodView(food.id(), food.name(), image(origin, food.id()), food.seasoning()))
+                .toList();
+        List<RecipeView> recipes = core.recipes().stream()
+                .map(recipe -> new RecipeView(
+                        recipe.id(),
+                        recipe.name(),
+                        recipe.version(),
+                        recipe.category(),
+                        recipe.cookware(),
+                        recipe.step(),
+                        recipe.ingredients().stream()
+                                .map(item -> new IngredientView(
+                                        item.foodId(), item.name(), item.grams(), image(origin, item.foodId())))
+                                .toList(),
+                        recipe.nutrition()))
+                .toList();
+        return new CatalogSnapshot(foods, recipes);
+    }
+
+    private CatalogSnapshot loadSnapshot(String origin) {
+        FoodNutrientTable foods = new FoodNutrientTable();
         for (CatalogMapper.FoodRow row : catalogMapper.foodsUsedByPublishedRecipes()) {
-            foods.put(row.id(), new FoodRow(row.name(), row.categoryCode(), new LinkedHashMap<>()));
+            foods.put(row.id(), new FoodNutrientProfile(row.name(), row.categoryCode(), List.of()));
         }
         for (CatalogMapper.NutrientRow row : catalogMapper.nutrientsForPublishedFoods()) {
-            FoodRow food = foods.get(row.foodId());
-            if (food != null && row.amount() != null) {
-                food.amounts.put(row.nutrientCode(), row.amount());
-            }
+            foods.find(row.foodId()).ifPresent(food -> food.put(row.nutrientCode(), row.amount()));
         }
-        Map<String, List<CatalogMapper.IngredientRow>> ingredients = new LinkedHashMap<>();
+        RecipeIngredientIndex ingredients = new RecipeIngredientIndex();
         for (CatalogMapper.IngredientRow row : catalogMapper.publishedIngredients()) {
-            ingredients.computeIfAbsent(row.recipeId(), key -> new ArrayList<>()).add(row);
+            ingredients.add(row);
         }
-        List<FoodView> foodViews = foods.entrySet().stream()
+        List<FoodView> foodViews = foods.entries().stream()
                 .map(entry -> new FoodView(
-                        entry.getKey(),
-                        entry.getValue().name,
-                        image(origin, entry.getKey()),
-                        entry.getValue().categoryCode == OIL || entry.getValue().categoryCode == SEASONING))
+                        entry.foodId(),
+                        entry.profile().name(),
+                        image(origin, entry.foodId()),
+                        entry.profile().categoryCode() == OIL || entry.profile().categoryCode() == SEASONING))
                 .toList();
         List<RecipeView> recipeViews = catalogMapper.publishedRecipes().stream()
-                .map(recipe -> toRecipe(recipe, ingredients.getOrDefault(recipe.id(), List.of()), foods, origin))
+                .map(recipe -> toRecipe(recipe, ingredients.of(recipe.id()), foods, origin))
                 .toList();
         return new CatalogSnapshot(foodViews, recipeViews);
     }
@@ -64,15 +126,13 @@ public class CatalogBrowse {
         if (recipeId == null || recipeId.isBlank()) {
             return Optional.empty();
         }
-        return snapshot(origin).recipes().stream()
-                .filter(recipe -> recipe.id().equals(recipeId))
-                .findFirst();
+        return snapshot(origin).recipe(recipeId);
     }
 
     private static RecipeView toRecipe(
             CatalogMapper.RecipeHead recipe,
             List<CatalogMapper.IngredientRow> rows,
-            Map<String, FoodRow> foods,
+            FoodNutrientTable foods,
             String origin) {
         List<IngredientView> ingredients = new ArrayList<>();
         BigDecimal energy = null;
@@ -83,13 +143,14 @@ public class CatalogBrowse {
         BigDecimal fiber = null;
         boolean fiberKnown = true;
         for (CatalogMapper.IngredientRow row : rows) {
-            FoodRow food = foods.get(row.foodId());
-            String name = food == null ? row.foodId() : food.name;
+            Optional<FoodNutrientProfile> foodOpt = foods.find(row.foodId());
+            String name = foodOpt.map(FoodNutrientProfile::name).orElse(row.foodId());
             ingredients.add(new IngredientView(row.foodId(), name, row.grams(), image(origin, row.foodId())));
-            if (food == null || row.grams() == null) {
+            if (foodOpt.isEmpty() || row.grams() == null) {
                 fiberKnown = false;
                 continue;
             }
+            FoodNutrientProfile food = foodOpt.get();
             BigDecimal scale = row.grams().divide(new BigDecimal("100"), 6, RoundingMode.HALF_UP);
             energy = add(energy, scale(food, ENERGY, scale));
             protein = add(protein, scale(food, PROTEIN, scale));
@@ -120,8 +181,8 @@ public class CatalogBrowse {
                         round(sodium, 0)));
     }
 
-    private static BigDecimal scale(FoodRow food, int code, BigDecimal scale) {
-        BigDecimal amount = food.amounts.get(code);
+    private static BigDecimal scale(FoodNutrientProfile food, int code, BigDecimal scale) {
+        BigDecimal amount = food.amountOf(code);
         return amount == null ? null : amount.multiply(scale);
     }
 
@@ -140,10 +201,61 @@ public class CatalogBrowse {
         return origin + "/api/nutrition/catalog/foods/" + foodId + "/image";
     }
 
-    private record FoodRow(String name, int categoryCode, Map<Integer, BigDecimal> amounts) {
+    /** 菜谱 → 用料行。 */
+    private static final class RecipeIngredientIndex {
+        private final Map<String, List<CatalogMapper.IngredientRow>> byRecipe = new LinkedHashMap<>();
+
+        void add(CatalogMapper.IngredientRow row) {
+            if (row == null || row.recipeId() == null) {
+                return;
+            }
+            byRecipe.computeIfAbsent(row.recipeId(), key -> new ArrayList<>()).add(row);
+        }
+
+        List<CatalogMapper.IngredientRow> of(String recipeId) {
+            List<CatalogMapper.IngredientRow> rows = byRecipe.get(recipeId);
+            return rows == null ? List.of() : List.copyOf(rows);
+        }
     }
 
-    public record CatalogSnapshot(List<FoodView> foods, List<RecipeView> recipes) {
+    private record CachedCore(CatalogSnapshot snapshot, long loadedAtMs) {
+    }
+
+    public record CatalogSnapshot(
+            List<FoodView> foods,
+            List<RecipeView> recipes,
+            Map<String, RecipeView> recipeById) {
+
+        public CatalogSnapshot(List<FoodView> foods, List<RecipeView> recipes) {
+            this(foods, recipes, indexRecipes(recipes));
+        }
+
+        public CatalogSnapshot {
+            foods = foods == null ? List.of() : List.copyOf(foods);
+            recipes = recipes == null ? List.of() : List.copyOf(recipes);
+            recipeById = recipeById == null ? indexRecipes(recipes) : Map.copyOf(recipeById);
+        }
+
+        /** O(1) 按菜号取已发布菜谱。 */
+        public Optional<RecipeView> recipe(String recipeId) {
+            if (recipeId == null || recipeId.isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.ofNullable(recipeById.get(recipeId));
+        }
+
+        private static Map<String, RecipeView> indexRecipes(List<RecipeView> recipes) {
+            if (recipes == null || recipes.isEmpty()) {
+                return Map.of();
+            }
+            Map<String, RecipeView> map = new LinkedHashMap<>();
+            for (RecipeView recipe : recipes) {
+                if (recipe != null && recipe.id() != null && !recipe.id().isBlank()) {
+                    map.putIfAbsent(recipe.id(), recipe);
+                }
+            }
+            return map;
+        }
     }
 
     public record FoodView(String id, String name, String image, boolean seasoning) {

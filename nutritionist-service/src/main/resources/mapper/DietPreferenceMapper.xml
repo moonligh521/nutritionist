@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.moonligh.nutritionist.infrastructure.persistence.DietPreferenceMapper">
+
+    <insert id="insertFact">
+        INSERT INTO diet_preference_fact (
+            fact_id, owner_id, subject, subject_type, polarity, strength, scope_type,
+            condition_json, valid_from, valid_to, source_text, event_id, version_no, created_at, updated_at
+        ) VALUES (
+            #{factId}, #{ownerId}, #{subject}, #{subjectType}, #{polarity}, #{strength}, #{scopeType},
+            #{conditionJson}, #{validFrom}, #{validTo}, #{sourceText}, #{eventId}, #{versionNo}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="closeCurrentFacts">
+        UPDATE diet_preference_fact
+        SET valid_to = #{validTo}, updated_at = #{validTo}
+        WHERE owner_id = #{ownerId}
+          AND subject = #{subject}
+          AND subject_type = #{subjectType}
+          AND valid_to IS NULL
+    </update>
+
+    <select id="listFacts" resultType="com.moonligh.nutritionist.infrastructure.persistence.DietPreferenceMapper$FactRow">
+        SELECT fact_id AS factId, owner_id AS ownerId, subject, subject_type AS subjectType,
+               polarity, strength, scope_type AS scopeType, condition_json AS conditionJson,
+               valid_from AS validFrom, valid_to AS validTo, source_text AS sourceText,
+               event_id AS eventId, version_no AS versionNo, created_at AS createdAt, updated_at AS updatedAt
+        FROM diet_preference_fact
+        WHERE owner_id = #{ownerId}
+        ORDER BY valid_from ASC, version_no ASC
+    </select>
+
+    <insert id="insertEvent">
+        INSERT INTO diet_memory_event (
+            event_id, owner_id, operation, subject, subject_type, polarity, strength, scope_type,
+            evidence_text, evidence_hash, extractor_version, status_code, before_json, after_json,
+            applied_at, created_at
+        ) VALUES (
+            #{eventId}, #{ownerId}, #{operation}, #{subject}, #{subjectType}, #{polarity}, #{strength}, #{scopeType},
+            #{evidenceText}, #{evidenceHash}, #{extractorVersion}, #{statusCode}, #{beforeJson}, #{afterJson},
+            #{appliedAt}, #{createdAt}
+        )
+    </insert>
+
+    <select id="countEvent" resultType="int">
+        SELECT COUNT(1) FROM diet_memory_event WHERE event_id = #{eventId}
+    </select>
+
+    <insert id="insertReview">
+        INSERT INTO diet_memory_review (
+            review_id, event_id, owner_id, review_type, reviewer_type, corrected_value, note_text, reviewed_at
+        ) VALUES (
+            #{reviewId}, #{eventId}, #{ownerId}, #{reviewType}, #{reviewerType}, #{correctedValue}, #{noteText}, #{reviewedAt}
+        )
+    </insert>
+
+    <select id="listReviews" resultType="com.moonligh.nutritionist.infrastructure.persistence.DietPreferenceMapper$ReviewRow">
+        SELECT review_id AS reviewId, event_id AS eventId, owner_id AS ownerId, review_type AS reviewType,
+               reviewer_type AS reviewerType, corrected_value AS correctedValue, note_text AS noteText,
+               reviewed_at AS reviewedAt
+        FROM diet_memory_review
+        WHERE owner_id = #{ownerId}
+        ORDER BY reviewed_at DESC
+    </select>
+
+    <!-- 已设 valid_to 且到期：补 updated_at（投影已靠 valid_to） -->
+    <update id="expireTimedFacts">
+        UPDATE diet_preference_fact
+        SET updated_at = #{now}
+        WHERE valid_to IS NOT NULL
+          AND valid_to &lt;= #{now}
+    </update>
+
+    <!-- 现行 TURN（>24h）/ TEMPORARY（>14d）关闭 -->
+    <update id="expireTurnFacts">
+        UPDATE diet_preference_fact
+        SET valid_to = #{now}, updated_at = #{now}
+        WHERE valid_to IS NULL
+          AND (
+            (scope_type = 'TURN' AND valid_from &lt; #{turnBefore})
+            OR (scope_type = 'TEMPORARY' AND valid_from &lt; #{tempBefore})
+          )
+    </update>
+
+    <insert id="upsertAllergySuspect">
+        INSERT INTO diet_allergy_suspect (
+            suspect_id, owner_id, subject, evidence_text, pending_flag, created_at, updated_at
+        ) VALUES (
+            #{suspectId}, #{ownerId}, #{subject}, #{evidenceText}, #{pendingFlag}, #{createdAt}, #{updatedAt}
+        )
+        ON DUPLICATE KEY UPDATE
+            evidence_text = VALUES(evidence_text),
+            pending_flag = VALUES(pending_flag),
+            updated_at = VALUES(updated_at)
+    </insert>
+
+    <select id="listPendingAllergySuspects"
+            resultType="com.moonligh.nutritionist.infrastructure.persistence.DietPreferenceMapper$AllergySuspectRow">
+        SELECT suspect_id AS suspectId, owner_id AS ownerId, subject,
+               evidence_text AS evidenceText, pending_flag AS pendingFlag,
+               created_at AS createdAt, updated_at AS updatedAt
+        FROM diet_allergy_suspect
+        WHERE owner_id = #{ownerId} AND pending_flag = 1
+        ORDER BY created_at ASC
+    </select>
+
+    <update id="markAllergySuspectDone">
+        UPDATE diet_allergy_suspect
+        SET pending_flag = 0, updated_at = #{updatedAt}
+        WHERE owner_id = #{ownerId} AND subject = #{subject} AND pending_flag = 1
+    </update>
+</mapper>

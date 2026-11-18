@@ -6,9 +6,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,22 +50,46 @@ class RecipeVectorLiveSmokeIT {
         props.setApiKey(apiKey.trim());
 
         MilvusVectorStore store = new MilvusVectorStore(props);
+        store.dropCollection(MilvusRecipeIndex.COLLECTION);
         float[] vector = store.embed("番茄炒蛋 清淡 家常");
         assumeTrue(vector != null && vector.length == 1024, "百炼 embed 失败");
 
-        String id = "smoke-sichuan-tomato-egg";
-        Map<String, String> fields = new LinkedHashMap<>();
-        fields.put("version", "1");
-        fields.put("kind", "菜");
-        fields.put("cuisine", "川菜");
-        fields.put("prefer_tags", RecipeVectorFilter.wrap("减肥"));
-        fields.put("suitable", RecipeVectorFilter.wrap("控糖"));
-        fields.put("unsuitable", RecipeVectorFilter.wrap(""));
-        store.save(new VectorDocument(MilvusRecipeIndex.COLLECTION, id, fields, "番茄炒蛋清淡", vector));
+        String id = "900001";
+        var fields = NamedField.of(
+                new NamedField("name", "番茄炒蛋"),
+                new NamedField("version", "1"),
+                new NamedField("kind", "菜"),
+                new NamedField("cuisine", "川菜"));
+        var listFields = List.of(
+                new NamedField.NamedStringList("prefer_tags", RecipeVectorFilter.tags("减肥")),
+                new NamedField.NamedStringList("suitable", RecipeVectorFilter.tags("控糖;控盐")),
+                new NamedField.NamedStringList("unsuitable", List.of()));
+        var descriptions = List.of(
+                new NamedField.FieldDescription("id", "菜谱主键，对应 MySQL recipe.id 的数字字符串"),
+                new NamedField.FieldDescription("name", "菜名，对应 recipe.display_name"));
+        store.save(new VectorDocument(
+                MilvusRecipeIndex.COLLECTION,
+                id,
+                NamedField.toMap(fields),
+                "番茄炒蛋清淡",
+                vector,
+                MilvusRecipeIndex.COLLECTION_DESCRIPTION,
+                NamedField.descriptionsToMap(descriptions),
+                NamedField.NamedStringList.toMap(listFields)));
 
         List<String> byFilter = store.query(
                 MilvusRecipeIndex.COLLECTION, "cuisine == \"川菜\"", 10);
         assertTrue(byFilter.contains(id), "标量过滤应命中冒烟川菜");
+
+        List<String> byName = store.query(
+                MilvusRecipeIndex.COLLECTION, "name == \"番茄炒蛋\"", 10);
+        assertTrue(byName.contains(id), "菜名标量应可过滤");
+
+        List<String> multiDisease = store.query(
+                MilvusRecipeIndex.COLLECTION,
+                RecipeVectorFilter.expr("川菜", "", List.of("减肥"), List.of("控糖", "控盐")),
+                10);
+        assertTrue(multiDisease.contains(id), "array_contains 应命中一菜多病");
 
         List<String> byVector = store.search(
                 MilvusRecipeIndex.COLLECTION, vector, "cuisine == \"川菜\"", 10);

@@ -28,7 +28,13 @@ public class DayMenuService {
     private static final BigDecimal STOCKED = new BigDecimal("5000");
     private static final List<String> ALWAYS = List.of("654", "668", "672");
     private static final Set<String> BREAKFAST = Set.of(
-            "wl-oat-milk", "wl-oats-water", "wl-bread-milk", "wl-boiled-egg", "wl-yogurt", "wl-apple", "wl-banana");
+            WeightLossRecipes.OAT_MILK,
+            WeightLossRecipes.OATS_WATER,
+            WeightLossRecipes.BREAD_MILK,
+            WeightLossRecipes.BOILED_EGG,
+            WeightLossRecipes.YOGURT,
+            WeightLossRecipes.APPLE,
+            WeightLossRecipes.BANANA);
 
     private final MealComposer meals = new MealComposer(
             new OjalgoSolverAdapter(), WeightLossRecipes.published(), WeightLossFoods.all());

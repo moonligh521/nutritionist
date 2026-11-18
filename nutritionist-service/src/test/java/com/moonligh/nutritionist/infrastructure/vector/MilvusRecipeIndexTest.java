@@ -46,16 +46,20 @@ class MilvusRecipeIndexTest {
         float[] vector = new float[1024];
         vector[0] = 0.5f;
         index.upsert(new RecipeVectorizer.Stored(
-                "r1", "3", "doc", RecipeVectorizer.toJson(vector), true,
+                "7", "番茄炒蛋", "3", "doc", RecipeVectorizer.toJson(vector), true,
                 "汤", "川菜", "减肥", "控糖", ""));
         assertEquals(0, embeds.get());
         assertNotNull(saved.get());
         assertNotNull(saved.get().vector());
+        assertEquals("7", saved.get().id());
+        assertEquals("番茄炒蛋", saved.get().fields().get("name"));
         assertEquals("川菜", saved.get().fields().get("cuisine"));
+        assertEquals(List.of("减肥"), saved.get().listFields().get("prefer_tags"));
+        assertEquals(List.of("控糖"), saved.get().listFields().get("suitable"));
 
         saved.set(null);
         index.upsert(new RecipeVectorizer.Stored(
-                "r2", "1", "doc", RecipeVectorizer.toJson(vector), false,
+                "8", "未发布", "1", "doc", RecipeVectorizer.toJson(vector), false,
                 "汤", "川菜", "", "", ""));
         assertNull(saved.get());
     }

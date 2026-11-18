@@ -2,9 +2,7 @@ package com.moonligh.nutritionist.domain.recommend;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 产品下载的通用菜谱表。一行是一道菜，不按字数切开。
@@ -24,13 +22,13 @@ public final class RecipeSheet {
                 # 菜系可填：家常、川菜、粤菜、鲁菜、苏菜、浙菜、闽菜、湘菜、徽菜、西餐，也可以写别的菜系。
                 # 标签用分号分开，例如：减肥;减脂;家常;快手 或 控糖;控盐。减肥和慢病标签只用于查找和展示。
                 # 这些标签不决定能不能做，也不决定克数。能不能做仍看主料是否齐全。示例填“是”的行不会入库。
-                # 主料写法：西红柿:200;鸡蛋:2。菜号可空，同一菜名再次上传会覆盖。
+                # 主料写法：西红柿:200;鸡蛋:2。菜号填 MySQL recipe.id 的数字；空菜号上传前需先入库拿到自增 id。
                 %s
-                ,番茄蛋汤,汤,家常,减肥;家常,控盐,,西红柿:200;鸡蛋:1,粉丝:30,食盐:2,番茄煮开后打入蛋液。,锅,是
-                ,白米饭,主食,家常,减肥,控糖,,大米:80,,,米饭蒸熟。,电饭煲,是
-                ,番茄炒蛋,菜,家常,减肥;减脂,控糖,,西红柿:200;鸡蛋:2,,菜籽油:8;食盐:1,西红柿切块，鸡蛋打散。,锅,是
-                ,鲜肉煎饺,小吃,东北,家常,,,猪肉:100;面粉:80,,食盐:1,饺子煎至底部金黄。,平底锅,是
-                ,紫菜蛋花汤,汤,家常,家常,控糖,高嘌呤,紫菜:5;鸡蛋:1,,食盐:1,水开后淋入蛋液。,锅,是
+                7,番茄蛋汤,汤,家常,减肥;家常,控盐,,西红柿:200;鸡蛋:1,粉丝:30,食盐:2,番茄煮开后打入蛋液。,锅,是
+                1,白米饭,主食,家常,减肥,控糖,,大米:80,,,米饭蒸熟。,电饭煲,是
+                7,番茄炒蛋,菜,家常,减肥;减脂,控糖,,西红柿:200;鸡蛋:2,,菜籽油:8;食盐:1,西红柿切块，鸡蛋打散。,锅,是
+                10,鲜肉煎饺,小吃,东北,家常,,,猪肉:100;面粉:80,,食盐:1,饺子煎至底部金黄。,平底锅,是
+                900002,紫菜蛋花汤,汤,家常,家常,控糖,高嘌呤,紫菜:5;鸡蛋:1,,食盐:1,水开后淋入蛋液。,锅,是
                 """.formatted(String.join(",", COLUMNS));
         byte[] body = text.getBytes(StandardCharsets.UTF_8);
         byte[] bom = new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
@@ -48,7 +46,7 @@ public final class RecipeSheet {
             csv = csv.substring(1);
         }
         List<String> lines = splitLines(csv);
-        Map<String, Integer> header = null;
+        SheetHeader header = null;
         List<Row> rows = new ArrayList<>();
         for (String line : lines) {
             String trimmed = line.trim();
@@ -57,65 +55,43 @@ public final class RecipeSheet {
             }
             List<String> cells = splitCsv(trimmed);
             if (header == null) {
-                header = index(cells);
-                require(header, "菜名");
-                require(header, "种类");
-                require(header, "菜系");
-                require(header, "标签");
+                header = SheetHeader.from(cells);
+                header.require("菜名");
+                header.require("种类");
+                header.require("菜系");
+                header.require("标签");
                 continue;
             }
-            String example = cell(cells, header, "示例");
+            String example = header.cell(cells, "示例");
             if ("是".equals(example)) {
                 continue;
             }
-            String name = cell(cells, header, "菜名");
+            String name = header.cell(cells, "菜名");
             if (name.isBlank()) {
                 continue;
             }
-            String id = cell(cells, header, "菜号");
+            String id = header.cell(cells, "菜号");
             if (id.isBlank()) {
                 id = "sheet-" + Integer.toUnsignedString(name.hashCode());
             }
             rows.add(new Row(
                     id,
                     name,
-                    cell(cells, header, "种类"),
-                    cell(cells, header, "菜系"),
-                    cell(cells, header, "标签"),
-                    cell(cells, header, "适合"),
-                    cell(cells, header, "不适合"),
-                    cell(cells, header, "主料"),
-                    cell(cells, header, "辅料"),
-                    cell(cells, header, "调味"),
-                    cell(cells, header, "做法"),
-                    cell(cells, header, "厨具")));
+                    header.cell(cells, "种类"),
+                    header.cell(cells, "菜系"),
+                    header.cell(cells, "标签"),
+                    header.cell(cells, "适合"),
+                    header.cell(cells, "不适合"),
+                    header.cell(cells, "主料"),
+                    header.cell(cells, "辅料"),
+                    header.cell(cells, "调味"),
+                    header.cell(cells, "做法"),
+                    header.cell(cells, "厨具")));
         }
         if (header == null) {
             throw new IllegalArgumentException("缺少表头");
         }
         return rows;
-    }
-
-    private static void require(Map<String, Integer> header, String name) {
-        if (!header.containsKey(name)) {
-            throw new IllegalArgumentException("表头缺少" + name);
-        }
-    }
-
-    private static Map<String, Integer> index(List<String> cells) {
-        Map<String, Integer> header = new LinkedHashMap<>();
-        for (int index = 0; index < cells.size(); index++) {
-            header.put(cells.get(index).trim(), index);
-        }
-        return header;
-    }
-
-    private static String cell(List<String> cells, Map<String, Integer> header, String name) {
-        Integer index = header.get(name);
-        if (index == null || index >= cells.size()) {
-            return "";
-        }
-        return cells.get(index).trim();
     }
 
     private static List<String> splitLines(String csv) {

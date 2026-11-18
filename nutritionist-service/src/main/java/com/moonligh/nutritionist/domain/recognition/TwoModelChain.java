@@ -11,10 +11,16 @@ public final class TwoModelChain implements ModelCompletion {
 
     private final Call primary;
     private final Call fallback;
+    private final int timeoutRetries;
 
     public TwoModelChain(Call primary, Call fallback) {
+        this(primary, fallback, 1);
+    }
+
+    public TwoModelChain(Call primary, Call fallback, int timeoutRetries) {
         this.primary = primary;
         this.fallback = fallback;
+        this.timeoutRetries = Math.max(0, timeoutRetries);
     }
 
     @Override
@@ -23,15 +29,22 @@ public final class TwoModelChain implements ModelCompletion {
         if (first.hasText()) {
             return Optional.of(first.text());
         }
-        // 只有超时才重试。别的失败不再打主模型。
+        // 只有超时才按配置重试；timeoutRetries=0 时立刻结束或改兜底
         if (!first.timedOut()) {
             return Optional.empty();
         }
-        Outcome second = primary.call(prompt);
-        if (second.hasText()) {
-            return Optional.of(second.text());
+        Outcome last = first;
+        for (int i = 0; i < timeoutRetries; i++) {
+            Outcome retry = primary.call(prompt);
+            if (retry.hasText()) {
+                return Optional.of(retry.text());
+            }
+            last = retry;
+            if (!retry.timedOut()) {
+                return Optional.empty();
+            }
         }
-        if (!second.timedOut() || fallback == null) {
+        if (!last.timedOut() || fallback == null) {
             return Optional.empty();
         }
         Outcome third = fallback.call(prompt);

@@ -3,9 +3,7 @@ package com.moonligh.nutritionist.domain.meal;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -180,17 +178,15 @@ public class MealComposer {
             }
             maximum = maximum.min(cap);
         }
-        Map<NutrientType, BigDecimal> totals = new EnumMap<>(NutrientType.class);
+        NutrientTotalBoard totals = new NutrientTotalBoard();
         for (var ingredient : recipe.ingredients()) {
             for (var nutrient : calculator.calculate(food(ingredient.foodItemId()), ingredient.quantity())) {
                 if (nutrient.value() != null) {
-                    totals.merge(nutrient.type(), nutrient.value(), BigDecimal::add);
+                    totals.add(nutrient.type(), nutrient.value());
                 }
             }
         }
-        List<CandidateNutrient> nutrients = totals.entrySet().stream()
-                .map(entry -> new CandidateNutrient(entry.getKey(), entry.getValue()))
-                .toList();
+        List<CandidateNutrient> nutrients = totals.toCandidates();
         boolean deprioritized = recipe.ingredients().stream()
                 .anyMatch(item -> order.deprioritizedFoodIds().contains(item.foodItemId()));
         return new SolverCandidate(recipe.recipeId(), maximum, nutrients, deprioritized ? BigDecimal.ONE : BigDecimal.ZERO);
@@ -295,5 +291,33 @@ public class MealComposer {
                 .map(CandidateNutrient::amountPerUnit)
                 .findFirst()
                 .orElse(BigDecimal.ZERO);
+    }
+
+    /** 营养素合计板：代替 EnumMap&lt;NutrientType, BigDecimal&gt;。 */
+    private static final class NutrientTotalBoard {
+        private final List<Total> totals = new ArrayList<>();
+
+        void add(NutrientType type, BigDecimal amount) {
+            if (type == null || amount == null) {
+                return;
+            }
+            for (int index = 0; index < totals.size(); index++) {
+                Total current = totals.get(index);
+                if (current.type() == type) {
+                    totals.set(index, new Total(type, current.amount().add(amount)));
+                    return;
+                }
+            }
+            totals.add(new Total(type, amount));
+        }
+
+        List<CandidateNutrient> toCandidates() {
+            return totals.stream()
+                    .map(total -> new CandidateNutrient(total.type(), total.amount()))
+                    .toList();
+        }
+
+        private record Total(NutrientType type, BigDecimal amount) {
+        }
     }
 }

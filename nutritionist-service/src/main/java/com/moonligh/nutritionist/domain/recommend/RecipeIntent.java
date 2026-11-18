@@ -4,8 +4,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-/** 从用户这句话里拆出点名字段和模糊词。过滤靠字段，模糊词才走向量。 */
+/**
+ * 检索侧字段过滤：只从话术里抠已发布标量词（菜系/种类/偏好/适合）。
+ * 不是对话意图理解；换菜、代替、多任务由 IntentUnderstander（模型）负责。
+ */
 public record RecipeIntent(
         String cuisine,
         String kind,
@@ -20,6 +25,8 @@ public record RecipeIntent(
     private static final List<String> KINDS = List.of("汤", "主食", "菜", "小吃", "饮品", "粥", "凉菜");
     private static final List<String> PREFER = List.of("减肥", "减脂", "快手");
     private static final List<String> CONDITIONS = List.of("控糖", "控盐", "低盐", "低嘌呤");
+    /** 「菜系XYZ」点名未知菜系，走标量 fail-closed，不进 fuzzy embed。 */
+    private static final Pattern NAMED_CUISINE = Pattern.compile("菜系([\\w\\u4e00-\\u9fff]+)");
 
     public static RecipeIntent parse(String text) {
         return parse(text, List.of());
@@ -29,6 +36,7 @@ public record RecipeIntent(
         String remaining = text == null ? "" : text;
         String cuisine = "";
         String kind = "";
+        boolean pointedCuisine = false;
         Set<String> tags = new LinkedHashSet<>();
         Set<String> disease = new LinkedHashSet<>();
         if (conditions != null) {
@@ -43,6 +51,15 @@ public record RecipeIntent(
                 cuisine = word;
                 remaining = remaining.replace(word, " ");
                 break;
+            }
+        }
+        if (cuisine.isBlank()) {
+            Matcher namedCuisine = NAMED_CUISINE.matcher(remaining);
+            if (namedCuisine.find()) {
+                cuisine = namedCuisine.group(1);
+                remaining = remaining.replace(namedCuisine.group(0), " ");
+                // 「菜系XYZ」点名优先：剩余「不存在的」等碎词不得再进 fuzzy embed
+                pointedCuisine = true;
             }
         }
         for (String word : sortedByLength(KINDS)) {
@@ -68,12 +85,15 @@ public record RecipeIntent(
                 remaining = remaining.replace(word, " ");
             }
         }
-        String fuzzy = remaining
-                .replaceAll("[，。、；;,.!?！？\\s]+", " ")
-                .replace("想吃", " ")
-                .replace("我想", " ")
-                .trim()
-                .replaceAll("\\s+", "");
+        String fuzzy = "";
+        if (!pointedCuisine) {
+            fuzzy = remaining
+                    .replaceAll("[，。、；;,.!?！？\\s]+", " ")
+                    .replace("想吃", " ")
+                    .replace("我想", " ")
+                    .trim()
+                    .replaceAll("\\s+", "");
+        }
         boolean named = !cuisine.isBlank() || !kind.isBlank() || !tags.isEmpty();
         boolean hasFuzzy = !fuzzy.isBlank();
         return new RecipeIntent(

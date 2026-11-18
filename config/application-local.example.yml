@@ -22,6 +22,11 @@ model:
   fallback-base-url: ""
   fallback-api-key: ""
 consult:
+  observability:
+    langfuse:
+      # 与挂号共用；不要提交真实密钥
+      public-key: "replace-with-langfuse-public-key"
+      secret-key: "replace-with-langfuse-secret-key"
   vector:
     host: 154.8.236.238
     port: 19530

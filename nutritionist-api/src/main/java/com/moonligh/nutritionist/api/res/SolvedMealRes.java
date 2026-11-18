@@ -48,7 +48,7 @@ public record SolvedMealRes(
 
     /** 一道菜的份数、克数和固定步骤。 */
     public record DishRes(
-            /** 菜谱标识。 */
+            /** 菜谱标识：MySQL recipe.id 的数字字符串。 */
             String recipeId,
             /** 份数。1 表示菜谱上的整份。 */
             BigDecimal portions,

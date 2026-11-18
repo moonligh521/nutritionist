@@ -18,7 +18,7 @@ class WeightLossRecipesTest {
     @Test
     void tomatoEggsUsesTheCatalogTomatoAndListsOilAndSalt() {
         Recipe recipe = WeightLossRecipes.published().stream()
-                .filter(item -> item.recipeId().equals("wl-egg-tomato"))
+                .filter(item -> item.recipeId().equals("7"))
                 .findFirst()
                 .orElseThrow();
 
@@ -31,7 +31,7 @@ class WeightLossRecipesTest {
     @Test
     void composerKeepsEveryIngredientWhenTheDishIsServed() {
         Recipe tomatoEggs = WeightLossRecipes.published().stream()
-                .filter(item -> item.recipeId().equals("wl-egg-tomato"))
+                .filter(item -> item.recipeId().equals("7"))
                 .findFirst()
                 .orElseThrow();
         MealComposer composer = new MealComposer(new OjalgoSolverAdapter(), List.of(tomatoEggs), WeightLossFoods.all());

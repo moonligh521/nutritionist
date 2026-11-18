@@ -188,6 +188,9 @@ Page({
   open(event) {
     wx.navigateTo({ url: `/pages/recipe/recipe?id=${event.currentTarget.dataset.id}` })
   },
+  goAskMeal() {
+    wx.navigateTo({ url: "/pages/askmeal/askmeal" })
+  },
   goPantry() {
     wx.navigateTo({ url: "/pages/pantry/pantry" })
   },
