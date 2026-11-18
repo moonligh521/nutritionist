@@ -1,0 +1,157 @@
+.page {
+  min-height: 100vh;
+  padding: 24rpx 28rpx 48rpx;
+  box-sizing: border-box;
+  background: #f4f8f7;
+}
+
+.hello .h1 {
+  font-size: 40rpx;
+  font-weight: 600;
+}
+
+.muted {
+  color: #6b7c78;
+  font-size: 24rpx;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  margin: 16rpx 0;
+  font-size: 22rpx;
+  color: #6b7c78;
+  word-break: break-all;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.script-log-top {
+  max-height: 22vh;
+  margin-bottom: 12rpx;
+  padding: 12rpx 14rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  white-space: pre-wrap;
+  font-size: 20rpx;
+  color: #445552;
+  box-sizing: border-box;
+}
+
+.chat {
+  height: 32vh;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 16rpx;
+  box-sizing: border-box;
+}
+
+.bubble {
+  margin-bottom: 16rpx;
+  max-width: 92%;
+}
+
+.bubble.user {
+  margin-left: auto;
+}
+
+.bubble .role {
+  font-size: 20rpx;
+  color: #6b7c78;
+  margin-bottom: 4rpx;
+}
+
+.bubble .text {
+  padding: 14rpx 18rpx;
+  border-radius: 14rpx;
+  background: #e7f6f3;
+  font-size: 28rpx;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.bubble.user .text {
+  background: #2ec4b6;
+  color: #fff;
+}
+
+.dishes {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #2a6f68;
+}
+
+.composer {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+  margin: 16rpx 0;
+}
+
+.input {
+  flex: 1;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 14rpx 18rpx;
+  font-size: 28rpx;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12rpx;
+}
+
+.h2 {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.node {
+  display: grid;
+  grid-template-columns: 220rpx 80rpx 1fr;
+  gap: 8rpx;
+  padding: 10rpx 0;
+  border-top: 1rpx solid #eef3f2;
+  font-size: 22rpx;
+}
+
+.node.ok .npass {
+  color: #1a7f4b;
+}
+
+.node.bad .npass {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+.nid {
+  color: #2a6f68;
+}
+
+.ndetail {
+  color: #445552;
+  word-break: break-all;
+}
+
+.script-log {
+  margin-top: 16rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #eef3f2;
+  white-space: pre-wrap;
+  font-size: 22rpx;
+  color: #445552;
+}

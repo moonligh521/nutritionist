@@ -6,26 +6,24 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * 把一句家常话拆成食材名、数量和目标。
- * 个数、一颗、一把不算克数。半斤按 250 克，一斤按 500 克。
+ * 库存识别用的轻量切词与斤两换算，不是对话意图理解器。
+ * 换菜 / 加汤 / 代替 / 多任务意图一律走 IntentUnderstander（模型）。
+ * 半斤按 250 克，一斤按 500 克；个数、一颗、一把不算克数。
  */
 public final class HouseholdUtterance {
 
     private static final Pattern SPLIT = Pattern.compile("[\\s、,，;；]+|还有|以及|和");
-    private static final Pattern INTENT = Pattern.compile("减肥|减重|减脂|控糖|低盐|咋做|怎么做|我想|应该");
-    private static final Pattern RECALL = Pattern.compile("上次|之前|昨天|上个月|一个月");
+    private static final Pattern SKIP = Pattern.compile("减肥|减重|减脂|控糖|低盐|咋做|怎么做|我想|应该|上次|之前|昨天|上个月|一个月");
 
     private HouseholdUtterance() {
     }
 
     public static Parsed parse(String text) {
         String raw = text == null ? "" : text.strip();
-        String goal = goal(raw);
-        boolean recall = RECALL.matcher(raw).find();
         List<Mention> mentions = new ArrayList<>();
         for (String part : SPLIT.split(raw)) {
             String piece = part.strip();
-            if (piece.isEmpty() || INTENT.matcher(piece).find() || RECALL.matcher(piece).find()) {
+            if (piece.isEmpty() || SKIP.matcher(piece).find()) {
                 continue;
             }
             piece = piece.replaceFirst("^(我家里有|家里有|我有|有)", "");
@@ -36,20 +34,8 @@ public final class HouseholdUtterance {
             }
             mentions.add(new Mention(name, grams));
         }
-        return new Parsed(goal, recall, List.copyOf(mentions));
-    }
-
-    private static String goal(String text) {
-        if (text.contains("减肥") || text.contains("减重") || text.contains("减脂")) {
-            return "WEIGHT_LOSS";
-        }
-        if (text.contains("控糖") || text.contains("血糖")) {
-            return "GLUCOSE";
-        }
-        if (text.contains("低盐") || text.contains("少盐")) {
-            return "LOW_SODIUM";
-        }
-        return null;
+        // goal/recall 不再用词典猜；对话层由模型理解，库存识别只关心食材名与克数。
+        return new Parsed(null, false, List.copyOf(mentions));
     }
 
     private static BigDecimal grams(String piece) {

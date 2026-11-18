@@ -284,11 +284,15 @@ public interface NutritionDataMapper {
 
     int updateRecipe(@Param("currentVersion") String currentVersion, @Param("recipeId") String recipeId);
 
-    int insertRecipe(
-            @Param("recipeId") String recipeId,
-            @Param("displayName") String displayName,
-            @Param("currentVersion") String currentVersion,
-            @Param("createdAt") Instant createdAt);
+    /** 插入菜谱头，自增 id 写回 {@link RecipeInsert#id}。 */
+    int insertRecipe(RecipeInsert row);
+
+    class RecipeInsert {
+        public Long id;
+        public String displayName;
+        public String currentVersion;
+        public Instant createdAt;
+    }
 
     int updateRecipeVersion(
             @Param("statusCode") int statusCode,

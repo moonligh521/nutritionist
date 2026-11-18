@@ -26,6 +26,14 @@
     </view>
   </view>
 
+  <view class="card pantry" bindtap="goAskMeal">
+    <view>
+      <view class="pantry-title">问餐（真实接口）</view>
+      <view class="muted">预热偏好 · 多轮对话 · 节点分析</view>
+    </view>
+    <text class="go">去问餐</text>
+  </view>
+
   <view class="card pantry" bindtap="goPantry">
     <view>
       <view class="pantry-title">按现有食材配一整日</view>

@@ -29,6 +29,9 @@ config/application-local.yml
 .vscode/
 *.swp
 
+# Accidental SDK dumps (e.g. io.milvus sources)
+/io/
+
 # OS
 .DS_Store
 Thumbs.db

@@ -123,6 +123,14 @@ public class ClinicalRecordService {
         if (patientId == null || patientId.isBlank() || allergenCode == null || allergenCode.isBlank()) {
             return false;
         }
+        return confirmedAllergenCodes(patientId).contains(allergenCode);
+    }
+
+    /** 已确认过敏原编码列表，供长期记忆装载。 */
+    public List<String> confirmedAllergenCodes(String patientId) {
+        if (patientId == null || patientId.isBlank()) {
+            return List.of();
+        }
         ConfirmedAllergens row = confirmedAllergens.findOrCreate(patientId, () -> new ConfirmedAllergens(patientId));
         if (records != null) {
             for (String code : records.confirmedAllergens(patientId)) {
@@ -131,7 +139,7 @@ public class ClinicalRecordService {
                 }
             }
         }
-        return row.codes().contains(allergenCode);
+        return List.copyOf(row.codes());
     }
 
     public MeasurementRes addMeasurement(String accountId, CreateMeasurementReq request) {

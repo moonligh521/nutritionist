@@ -1,14 +1,15 @@
 {
   "pages": [
     "pages/today/today",
+    "pages/askmeal/askmeal",
     "pages/plan/plan",
     "pages/pantry/pantry",
     "pages/mine/mine",
     "pages/checkin/checkin",
     "pages/recipes/recipes",
     "pages/recipe/recipe",
-  "pages/budget/budget",
-  "pages/shop/shop"
+    "pages/budget/budget",
+    "pages/shop/shop"
   ],
   "window": {
     "navigationBarBackgroundColor": "#f4f8f7",

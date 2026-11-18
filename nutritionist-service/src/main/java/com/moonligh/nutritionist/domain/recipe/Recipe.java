@@ -4,7 +4,7 @@ import java.util.List;
 
 /** 一道菜谱。只有已发布的版本才能拿来配餐。 */
 public record Recipe(
-        /** 菜谱标识。 */
+        /** 菜谱标识：MySQL recipe.id 的数字字符串。 */
         String recipeId,
         /** 菜谱版本。配料变更产生新版本。 */
         String version,

@@ -1,0 +1,50 @@
+<view class="page">
+  <view class="hello">
+    <view class="h1">问餐</view>
+    <view class="muted">连本机真实服务 · 每轮看节点分析</view>
+  </view>
+
+  <view class="meta">
+    <text>session {{sessionId}}</text>
+    <text>patient {{patientId || "未绑"}}</text>
+  </view>
+
+  <view class="actions">
+    <button size="mini" bindtap="onWarmup" disabled="{{busy}}">预热偏好</button>
+    <button size="mini" type="primary" bindtap="onRunScript" disabled="{{busy}}">跑完整验收</button>
+    <button size="mini" bindtap="onClear">清空</button>
+  </view>
+
+  <scroll-view wx:if="{{scriptLog}}" scroll-y class="script-log-top">{{scriptLog}}</scroll-view>
+
+  <scroll-view scroll-y class="chat" scroll-into-view="{{scrollInto}}">
+    <block wx:for="{{messages}}" wx:key="id">
+      <view id="m{{item.id}}" class="bubble {{item.role}}">
+        <view class="role">{{item.role === 'user' ? '我' : '助手'}}</view>
+        <view class="text">{{item.text}}</view>
+        <view wx:if="{{item.dishes}}" class="dishes">{{item.dishes}}</view>
+      </view>
+    </block>
+  </scroll-view>
+
+  <view class="composer">
+    <input class="input" value="{{draft}}" placeholder="像真人一样说话，例如：换一个" bindinput="onDraft" confirm-type="send" bindconfirm="onSend" />
+    <button size="mini" type="primary" bindtap="onSend" disabled="{{busy}}">发送</button>
+  </view>
+
+  <view class="card nodes">
+    <view class="row">
+      <text class="h2">节点分析</text>
+      <text class="muted">{{lastRoundTitle}}</text>
+    </view>
+    <view wx:if="{{!nodes.length}}" class="muted">发一轮对话后这里会列出每个节点指令结果</view>
+    <block wx:for="{{nodes}}" wx:key="id">
+      <view class="node {{item.pass ? 'ok' : 'bad'}}">
+        <text class="nid">{{item.id}}</text>
+        <text class="npass">{{item.pass ? 'PASS' : 'FAIL'}}</text>
+        <text class="ndetail">{{item.detail}}</text>
+      </view>
+    </block>
+    <view wx:if="{{scriptLog}}" class="script-log">{{scriptLog}}</view>
+  </view>
+</view>

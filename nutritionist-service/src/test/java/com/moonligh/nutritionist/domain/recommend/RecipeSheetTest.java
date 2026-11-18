@@ -29,12 +29,12 @@ class RecipeSheetTest {
     void uploadVectorizesOneRowAndKeepsUnpublishedOutOfPlanning() {
         String csv = """
                 菜号,菜名,种类,菜系,标签,主料,辅料,调味,做法,厨具,示例
-                wl-egg-tomato,番茄炒蛋,菜,家常,减肥;减脂,西红柿:200;鸡蛋:2,,,西红柿切块。,锅,否
+                7,番茄炒蛋,菜,家常,减肥;减脂,西红柿:200;鸡蛋:2,,,西红柿切块。,锅,否
                 new-soup,紫菜蛋花汤,汤,家常,控糖;控盐,紫菜:5;鸡蛋:1,,,水开后淋蛋液。,锅,
                 """;
         List<RecipeVectorizer.Stored> saved = new ArrayList<>();
         RecipeVectorizer.Report report = RecipeVectorizer.store(
-                csv, Set.of("wl-egg-tomato"), text -> new float[] {1f, 0f}, saved::add);
+                csv, Set.of("7"), text -> new float[] {1f, 0f}, saved::add);
 
         assertEquals(2, saved.size());
         assertEquals(2, report.vectorized());

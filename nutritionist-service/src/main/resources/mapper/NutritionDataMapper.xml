@@ -263,12 +263,12 @@
     </select>
 
     <update id="updateRecipe">
-        UPDATE recipe SET current_version = #{currentVersion} WHERE recipe_id = #{recipeId}
+        UPDATE recipe SET current_version = #{currentVersion} WHERE id = #{recipeId}
     </update>
 
-    <insert id="insertRecipe">
-        INSERT INTO recipe (recipe_id, display_name, current_version, created_at)
-        VALUES (#{recipeId}, #{displayName}, #{currentVersion}, #{createdAt})
+    <insert id="insertRecipe" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO recipe (display_name, current_version, created_at)
+        VALUES (#{displayName}, #{currentVersion}, #{createdAt})
     </insert>
 
     <update id="updateRecipeVersion">

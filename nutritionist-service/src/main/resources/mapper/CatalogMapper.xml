@@ -6,10 +6,10 @@
         SELECT 1
         FROM recipe_ingredient ingredient
         INNER JOIN recipe recipe
-            ON recipe.recipe_id = ingredient.recipe_id
+            ON recipe.id = ingredient.recipe_id
            AND recipe.current_version = ingredient.recipe_version
         INNER JOIN recipe_version version
-            ON version.recipe_id = recipe.recipe_id
+            ON version.recipe_id = recipe.id
            AND version.version = recipe.current_version
            AND version.status_code = 2
         WHERE ingredient.food_item_id = CAST(food.id AS CHAR)
@@ -33,12 +33,12 @@
     </select>
 
     <select id="publishedRecipes" resultType="com.moonligh.nutritionist.infrastructure.persistence.CatalogMapper$RecipeHead">
-        SELECT recipe.recipe_id AS id,
+        SELECT CAST(recipe.id AS CHAR) AS id,
                recipe.display_name AS name,
                COALESCE((
                    SELECT equipment.equipment_code
                    FROM recipe_equipment_variant equipment
-                   WHERE equipment.recipe_id = recipe.recipe_id
+                   WHERE equipment.recipe_id = recipe.id
                      AND equipment.recipe_version = recipe.current_version
                    ORDER BY equipment.id
                    LIMIT 1
@@ -46,7 +46,7 @@
                COALESCE((
                    SELECT step.instruction_text
                    FROM recipe_step step
-                   WHERE step.recipe_id = recipe.recipe_id
+                   WHERE step.recipe_id = recipe.id
                      AND step.recipe_version = recipe.current_version
                    ORDER BY step.step_no
                    LIMIT 1
@@ -54,20 +54,20 @@
                recipe.current_version AS version
         FROM recipe recipe
         INNER JOIN recipe_version version
-            ON version.recipe_id = recipe.recipe_id
+            ON version.recipe_id = recipe.id
            AND version.version = recipe.current_version
            AND version.status_code = 2
-        ORDER BY recipe.recipe_id
+        ORDER BY recipe.id
     </select>
 
     <select id="publishedIngredients" resultType="com.moonligh.nutritionist.infrastructure.persistence.CatalogMapper$IngredientRow">
-        SELECT ingredient.recipe_id AS recipeId, ingredient.food_item_id AS foodId, ingredient.quantity AS grams
+        SELECT CAST(ingredient.recipe_id AS CHAR) AS recipeId, ingredient.food_item_id AS foodId, ingredient.quantity AS grams
         FROM recipe_ingredient ingredient
         INNER JOIN recipe recipe
-            ON recipe.recipe_id = ingredient.recipe_id
+            ON recipe.id = ingredient.recipe_id
            AND recipe.current_version = ingredient.recipe_version
         INNER JOIN recipe_version version
-            ON version.recipe_id = recipe.recipe_id
+            ON version.recipe_id = recipe.id
            AND version.version = recipe.current_version
            AND version.status_code = 2
         ORDER BY ingredient.recipe_id, ingredient.id

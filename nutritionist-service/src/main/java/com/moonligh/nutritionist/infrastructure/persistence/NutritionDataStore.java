@@ -296,24 +296,36 @@ public class NutritionDataStore {
     }
 
     public void saveRecipe(Recipe recipe) {
-        int updated = records.updateRecipe(recipe.version(), recipe.recipeId());
-        if (updated == 0) {
-            records.insertRecipe(recipe.recipeId(), recipe.recipeId(), recipe.version(), Instant.now());
+        String recipeId = recipe.recipeId();
+        int updated = 0;
+        if (recipeId != null && !recipeId.isBlank() && recipeId.chars().allMatch(Character::isDigit)) {
+            updated = records.updateRecipe(recipe.version(), recipeId);
         }
-        int versionUpdated = records.updateRecipeVersion(recipe.status().code(), recipe.recipeId(), recipe.version());
+        if (updated == 0) {
+            NutritionDataMapper.RecipeInsert insert = new NutritionDataMapper.RecipeInsert();
+            insert.displayName = recipeId == null || recipeId.isBlank() ? "未命名菜谱" : recipeId;
+            insert.currentVersion = recipe.version();
+            insert.createdAt = Instant.now();
+            records.insertRecipe(insert);
+            if (insert.id == null) {
+                throw new IllegalStateException("菜谱自增 id 未返回");
+            }
+            recipeId = String.valueOf(insert.id);
+        }
+        int versionUpdated = records.updateRecipeVersion(recipe.status().code(), recipeId, recipe.version());
         if (versionUpdated == 0) {
             records.insertRecipeVersion(
-                    recipe.recipeId(), recipe.version(), recipe.status().code(),
+                    recipeId, recipe.version(), recipe.status().code(),
                     recipe.status() == RecipeStatus.PUBLISHED ? Instant.now() : null);
         }
-        records.deleteRecipeIngredients(recipe.recipeId(), recipe.version());
-        records.deleteRecipeSteps(recipe.recipeId(), recipe.version());
+        records.deleteRecipeIngredients(recipeId, recipe.version());
+        records.deleteRecipeSteps(recipeId, recipe.version());
         for (RecipeIngredient ingredient : recipe.ingredients()) {
             records.insertRecipeIngredient(
-                    recipe.recipeId(), recipe.version(), ingredient.foodItemId(), ingredient.quantity(), ingredient.unitCode());
+                    recipeId, recipe.version(), ingredient.foodItemId(), ingredient.quantity(), ingredient.unitCode());
         }
         for (RecipeStep step : recipe.steps()) {
-            records.insertRecipeStep(recipe.recipeId(), recipe.version(), step.stepNo(), step.instruction());
+            records.insertRecipeStep(recipeId, recipe.version(), step.stepNo(), step.instruction());
         }
     }
 

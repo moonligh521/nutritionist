@@ -48,7 +48,7 @@ public class HttpModelCompletion {
                 ? null
                 : caller(properties, permits, firstText(properties.fallbackBaseUrl(), properties.baseUrl()),
                         fallbackKey, properties.fallbackModelName());
-        return new TwoModelChain(primary, fallback);
+        return new TwoModelChain(primary, fallback, properties.timeoutRetries());
     }
 
     /** 向量化走公共模块。没配密钥或向量库连不上时返回空，关键词检索仍可用。 */
@@ -120,6 +120,10 @@ public class HttpModelCompletion {
         private String modelName = "deepseek-v4-pro";
         private int timeoutMs = 2000;
         private int acquireWaitMs = 200;
+        /** 主模型超时后再打主模型的次数；0 表示不重试。 */
+        private int timeoutRetries = 1;
+        /** 单回合模型墙钟预算（毫秒），供编排层使用。 */
+        private int turnDeadlineMs = 12000;
         /** 兜底模型。名称为空表示还没接，超时重试后直接走食材规则。密钥为空则沿用主模型。 */
         private String fallbackModelName = "";
         private String fallbackBaseUrl = "";
@@ -163,6 +167,22 @@ public class HttpModelCompletion {
 
         public void setAcquireWaitMs(int acquireWaitMs) {
             this.acquireWaitMs = acquireWaitMs;
+        }
+
+        public int timeoutRetries() {
+            return timeoutRetries;
+        }
+
+        public void setTimeoutRetries(int timeoutRetries) {
+            this.timeoutRetries = timeoutRetries;
+        }
+
+        public int turnDeadlineMs() {
+            return turnDeadlineMs;
+        }
+
+        public void setTurnDeadlineMs(int turnDeadlineMs) {
+            this.turnDeadlineMs = turnDeadlineMs;
         }
 
         public String fallbackModelName() {

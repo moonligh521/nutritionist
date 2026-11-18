@@ -19,10 +19,10 @@ import java.util.Map;
 public final class UsdaFoodCatalog {
 
     private static final List<FoodItem> FOODS = loadFoods();
-    private static final Map<String, FoodItem> BY_ID = indexById();
-    private static final Map<String, FoodItem> BY_HOUSEHOLD_NAME = loadHouseholdNames();
-    private static final Map<String, Integer> CATEGORY_BY_FOOD = loadCategoryByFood();
-    private static final Map<Integer, String> CATEGORY_NAMES = loadCategoryNames();
+    private static final FoodItemIndex BY_ID = FoodItemIndex.byId(FOODS);
+    private static final FoodItemIndex BY_HOUSEHOLD_NAME = loadHouseholdNames();
+    private static final CategoryCodeIndex CATEGORY_BY_FOOD = loadCategoryByFood();
+    private static final CategoryNameIndex CATEGORY_NAMES = loadCategoryNames();
 
     private UsdaFoodCatalog() {
     }
@@ -32,22 +32,22 @@ public final class UsdaFoodCatalog {
     }
 
     public static FoodItem find(String foodItemId) {
-        return BY_ID.get(foodItemId);
+        return BY_ID.find(foodItemId);
     }
 
     /** 家常叫法只做精确对应，不对英文描述做包含匹配。 */
     public static FoodItem findHouseholdName(String name) {
-        return name == null ? null : BY_HOUSEHOLD_NAME.get(name);
+        return name == null ? null : BY_HOUSEHOLD_NAME.find(name);
     }
 
     /** 中国配餐分类编号。没有分到类时为空。 */
     public static Integer categoryCode(String foodItemId) {
-        return CATEGORY_BY_FOOD.get(foodItemId);
+        return CATEGORY_BY_FOOD.codeOf(foodItemId);
     }
 
     /** 中国配餐分类名。未知编号返回空。 */
     public static String categoryName(Integer categoryCode) {
-        return categoryCode == null ? null : CATEGORY_NAMES.get(categoryCode);
+        return categoryCode == null ? null : CATEGORY_NAMES.nameOf(categoryCode);
     }
 
     private static List<FoodItem> loadFoods() {
@@ -58,40 +58,32 @@ public final class UsdaFoodCatalog {
         return List.copyOf(foods);
     }
 
-    private static Map<String, FoodItem> indexById() {
-        Map<String, FoodItem> byId = new LinkedHashMap<>();
-        for (FoodItem food : FOODS) {
-            byId.put(food.foodItemId(), food);
-        }
-        return Map.copyOf(byId);
-    }
-
-    private static Map<String, Integer> loadCategoryByFood() {
-        Map<String, Integer> categories = new LinkedHashMap<>();
+    private static CategoryCodeIndex loadCategoryByFood() {
+        CategoryCodeIndex index = new CategoryCodeIndex();
         for (String[] row : rows("/food/usda-category.tsv")) {
-            categories.put("usda-" + row[0], Integer.valueOf(row[1]));
+            index.put("usda-" + row[0], Integer.valueOf(row[1]));
         }
-        return Map.copyOf(categories);
+        return index;
     }
 
-    private static Map<Integer, String> loadCategoryNames() {
-        Map<Integer, String> names = new LinkedHashMap<>();
+    private static CategoryNameIndex loadCategoryNames() {
+        CategoryNameIndex index = new CategoryNameIndex();
         for (String[] row : rows("/food/food-category.tsv")) {
-            names.put(Integer.valueOf(row[0]), row[1]);
+            index.put(Integer.valueOf(row[0]), row[1]);
         }
-        return Map.copyOf(names);
+        return index;
     }
 
-    private static Map<String, FoodItem> loadHouseholdNames() {
-        Map<String, FoodItem> names = new LinkedHashMap<>();
+    private static FoodItemIndex loadHouseholdNames() {
+        FoodItemIndex index = new FoodItemIndex();
         for (String[] row : rows("/food/household-name.tsv")) {
-            FoodItem food = BY_ID.get("usda-" + row[1]);
+            FoodItem food = BY_ID.find("usda-" + row[1]);
             if (food == null || !food.displayName().equals(row[2])) {
                 throw new IllegalStateException("household name " + row[0]);
             }
-            names.put(row[0], food);
+            index.put(row[0], food);
         }
-        return Map.copyOf(names);
+        return index;
     }
 
     private static FoodItem food(String[] row) {
@@ -169,5 +161,54 @@ public final class UsdaFoodCatalog {
             throw new IllegalStateException(resource, error);
         }
         return rows;
+    }
+
+    /**
+     * 食材索引对象。内部仍用 Map 保证 O(1)，调用方只看见 find/put。
+     */
+    private static final class FoodItemIndex {
+        private final Map<String, FoodItem> byKey = new LinkedHashMap<>();
+
+        static FoodItemIndex byId(List<FoodItem> foods) {
+            FoodItemIndex index = new FoodItemIndex();
+            for (FoodItem food : foods) {
+                index.put(food.foodItemId(), food);
+            }
+            return index;
+        }
+
+        void put(String key, FoodItem food) {
+            if (key != null && food != null) {
+                byKey.put(key, food);
+            }
+        }
+
+        FoodItem find(String key) {
+            return key == null ? null : byKey.get(key);
+        }
+    }
+
+    private static final class CategoryCodeIndex {
+        private final Map<String, Integer> byFoodId = new LinkedHashMap<>();
+
+        void put(String foodItemId, int code) {
+            byFoodId.put(foodItemId, code);
+        }
+
+        Integer codeOf(String foodItemId) {
+            return foodItemId == null ? null : byFoodId.get(foodItemId);
+        }
+    }
+
+    private static final class CategoryNameIndex {
+        private final Map<Integer, String> byCode = new LinkedHashMap<>();
+
+        void put(int code, String name) {
+            byCode.put(code, name);
+        }
+
+        String nameOf(int code) {
+            return byCode.get(code);
+        }
     }
 }

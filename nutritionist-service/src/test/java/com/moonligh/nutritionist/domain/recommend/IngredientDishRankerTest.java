@@ -23,18 +23,18 @@ class IngredientDishRankerTest {
 
     @Test
     void dropsDishWhenAMainIngredientIsMissing() {
-        Dish eggTomato = dish("wl-egg-tomato", "番茄炒蛋", List.of(EGG, TOMATO), List.of(OIL, SALT));
-        Dish pork = dish("wl-pork", "里脊", List.of(BEEF), List.of(OIL));
+        Dish eggTomato = dish("7", "番茄炒蛋", List.of(EGG, TOMATO), List.of(OIL, SALT));
+        Dish pork = dish("99", "里脊", List.of(BEEF), List.of(OIL));
 
         List<Match> matches = IngredientDishRanker.top(Set.of("580", "138"), List.of(eggTomato, pork));
 
-        assertEquals(List.of("wl-egg-tomato"), matches.stream().map(match -> match.dish().id()).toList());
+        assertEquals(List.of("7"), matches.stream().map(match -> match.dish().id()).toList());
         assertTrue(matches.getFirst().bring().isEmpty());
     }
 
     @Test
     void returnsNothingWhenTheUserListedNoFood() {
-        Dish egg = dish("wl-boiled-egg", "水煮蛋", List.of(EGG), List.of());
+        Dish egg = dish("17", "水煮蛋", List.of(EGG), List.of());
 
         assertTrue(IngredientDishRanker.top(Set.of(), List.of(egg)).isEmpty());
     }

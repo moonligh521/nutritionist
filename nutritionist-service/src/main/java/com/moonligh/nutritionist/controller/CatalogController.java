@@ -2,6 +2,7 @@ package com.moonligh.nutritionist.controller;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -23,6 +24,7 @@ import com.moonligh.nutritionist.domain.recommend.RecipeVectorizer;
 import com.moonligh.nutritionist.domain.solver.SolverInfeasibleException;
 import com.moonligh.nutritionist.service.CatalogBrowse;
 import com.moonligh.nutritionist.service.DayMenuService;
+import com.moonligh.nutritionist.infrastructure.vector.MilvusRecipeIndex;
 import com.moonligh.nutritionist.service.DishRecommendService;
 import com.moonligh.nutritionist.service.RecipeVectorUpload;
 
@@ -82,13 +84,21 @@ public class CatalogController {
         }
     }
 
+    /** 丢弃旧集合并按 MySQL chunk/已发布目录重灌（启用 content+BM25 schema）。 */
+    @PostMapping("/vectors/reseed")
+    public Result<Map<String, Object>> reseedVectors() {
+        int written = vectors.reseedMilvus();
+        return Result.ok(Map.of("written", written, "collection", MilvusRecipeIndex.COLLECTION));
+    }
+
     @GetMapping("/matches")
     public Result<DishRecommendService.MatchReport> matches(
             @RequestParam(required = false) List<String> foods,
             @RequestParam(required = false) String text,
-            HttpServletRequest request) {
-        String origin = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
-        return Result.ok(dishRecommend.match(foods, origin, text));
+            @RequestParam(required = false) String cuisine,
+            @RequestParam(required = false) String kind,
+            @RequestParam(required = false) List<String> conditions) {
+        return Result.ok(dishRecommend.match(foods, text, cuisine, kind, conditions));
     }
 
     @GetMapping("/day")

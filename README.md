@@ -1,77 +1,141 @@
 # 饮食方案
 
-按减脂、控糖、忌口和家里现有食材，生成可以改口的一日食谱。
+家里有什么菜、想减脂还是控糖，系统从**已发布菜谱**里挑最多三道能做的，给出做法。不临场编菜，不临场下病情结论。
 
 本仓库是 [moonligh](https://moonligh.cn/) 的个人开源项目，采用 [Apache-2.0](LICENSE) 许可证。
 
-## 概述
+## 三十秒看懂
 
-用户可以同时提出减脂、控糖、忌口等目标，也可以中途补一句家里现有的食材。状态机更新饮食画像后，只重算受影响的餐次。目标和健康限制冲突时，先识别冲突，再检索营养依据，最后输出改过的做法，并写明搭配或分量上的调整。
+1. 打开问餐。先把账号上已记下的口味、忌口预热进这一轮会话。
+2. 报家里的食材，或说「川菜」「清淡一点」。点名菜系/种类/病情走字段过滤；「清淡」这类话才走向量和词检索。
+3. 主料必须齐全才上榜，最多三道。缺的非常备辅料写成「需自备」。
+4. 说「没有某某」就换菜；说「可以吃某某了」就改口。忌口进库不挡这一轮出菜。
 
-模型输出固定为饮食画像、核心原则和食谱表。Java 侧再用禁忌成分规则做最后一道拦截。结果用 SSE 流出，并可以按当前画像重新定制。示例中的食材、目标和限制都写在仓库里。
+克数和热量听已发布配料与求解器。模型不改克数，也不能把没标过的食材说成某种病可以吃。
 
-## 状态
+## 现在做到哪
 
-`feature-V0.1-20261105` 已落地 P0～P5 软件主链路：患者绑定、画像/安全/目标、库存与确定性配餐、推荐任务与 SSE、识别草稿与烹饪执行、偏差复算/解馋/效果评价、专业目标与 Kill Switch；本地 `mvn -B -pl nutritionist-service -am test` 通过。打 `0.1.0` 标签或合入 `master` 前须完成 [`V0.1 放行检查清单`](docs/superpowers/plans/2026-11-10-V0.1放行检查清单.md) 中的环境与压测项。
+V0.1 软件主链路（患者绑定、画像/安全/目标、库存与确定性配餐、推荐 SSE、烹饪执行、偏差/解馋/评价、专业目标与 Kill Switch）已落地。在此之上，问餐对话与菜谱检索也已接上：
 
-权威文档：
+- 问餐：点按钮预热偏好 → SSE 回合 → 理解/规划/召回；记忆 LLM 异步写，不堵出菜。
+- 检索：Milvus 稠密向量 +（库内 BM25 或进程内 BM25 降级）→ RRF 融合 → 主料硬过滤 → 百炼 Rerank（500ms 预算，超时保持规则序）。
+- 点名菜系/病情过滤 miss 时 fail-closed，不退回全库乱推。
+- 金标与 Accept 门禁已齐；合入 `master` / 打版前仍按放行清单做环境和压测。
 
-- 食材推荐回合：[`docs/方案`](docs/方案)
-- 产品基线：[`docs/superpowers/specs/2026-11-10-慢病与减重食材推荐系统设计.md`](docs/superpowers/specs/2026-11-10-慢病与减重食材推荐系统设计.md)
-- V0.x 减重餐竖切：[`docs/superpowers/specs/2026-11-12-V0.x减重餐竖切范围.md`](docs/superpowers/specs/2026-11-12-V0.x减重餐竖切范围.md)
-- 首批菜谱绑定：[`docs/superpowers/specs/2026-11-12-减重餐首批菜谱食材绑定清单.md`](docs/superpowers/specs/2026-11-12-减重餐首批菜谱食材绑定清单.md)
-- 施工方案：[`docs/superpowers/plans/2026-11-10-V0.1分阶段施工方案.md`](docs/superpowers/plans/2026-11-10-V0.1分阶段施工方案.md)
-- 放行清单：[`docs/superpowers/plans/2026-11-10-V0.1放行检查清单.md`](docs/superpowers/plans/2026-11-10-V0.1放行检查清单.md)
+账号、就诊人和网关鉴权与 `registration-assistant` 协作。统一返回、鉴权等脚手架在独立仓 `moonligh-platform`。本仓只保存患者引用和营养业务事实。
 
-账号、患者基础资料和网关鉴权与同产品体系的 `registration-assistant` 协作；统一返回、鉴权过滤器等脚手架依赖独立仓 `moonligh-platform`（`platform-common` / `platform-security`；网关横切走挂号仓的 `consult-gateway` + `platform-gateway`）。本仓库只保存患者引用和营养业务事实，不复制 Result / JWT / 限流实现。
+## 系统里有谁
 
-## 功能范围
+患者小程序只敲网关。问餐与配餐落在营养服务；向量在 Milvus；嵌入与重排走百炼。
 
-- 慢病与减重场景的安全准入、营养目标与餐次额度
-- 家中食材约束下的单餐与一日确定性配餐
-- 审核菜谱、精确配料与按计划烹饪执行
-- 实际摄入、测量反馈与未来餐调整
-- Java 复算与禁忌拦截；模型只做识别草稿和教学表达
-- SSE 输出推荐任务进度与最终校验结果
-
-## 技术选择
-
-与挂号服务对齐同一套运行时。食材推荐的模型调用自己封装，走兼容的 `/chat/completions`。Spring AI 尚未接入，以后只替换 `ModelCompletion`。
-
-- JDK 21
-- Spring Boot 4.1.1
-- MySQL 8.0.46
-- Redis 8.2.10
-- RocketMQ 5.5.1，Java 客户端使用 rocketmq-spring 2.3.6；V0.1 主链路不接入
-
-规则和确定性求解器决定菜品与克数；Java 复算校验；Redis 只做可丢失缓存；MySQL 是事实源。源码按 Maven 多模块落地，构建文件随 P0 任务提交。
-
-## 目录
-
-```text
-nutritionist-api/
-nutritionist-service/
-  src/main/java/com/moonligh/nutritionist/
-  src/main/resources/
-  src/test/java/com/moonligh/nutritionist/
+```mermaid
+flowchart LR
+  W[小程序问餐] --> G[网关]
+  G --> N[营养服务<br/>问餐 SSE / 配餐 / 目录]
+  N --> M[(MySQL<br/>菜谱 偏好 方案)]
+  N --> R[(Redis<br/>会话与缓存)]
+  N --> V[Milvus<br/>nutrition_recipe]
+  N --> L[百炼<br/>embed / rerank]
+  N --> I[身份服务<br/>患者引用]
 ```
 
-Java 包名是 `com.moonligh.nutritionist`。本地需 JDK 21，验证命令：`mvn -B verify`。
+| 谁 | 干什么 | 端口 |
+| --- | --- | --- |
+| 网关 | 登录检查、限流、路由（挂号仓） | 8080 |
+| 营养服务 | 问餐、推荐、目录、向量上传/重灌 | 18091 |
+| 身份 | 登录与就诊人（挂号仓） | 18082 |
+| Milvus | 已发布菜稠密向量；≥2.5 时库内 BM25 | 19530 |
+| MySQL | 事实源：菜谱正文、chunk、偏好、方案 | — |
 
-## 数据
+## 口述：从点「问餐」到三道菜
 
-食材、目标和健康限制使用示例配置。真实用户档案不进入仓库。
+先记住：**推荐只使用已发布菜。** 没有合适的已发布菜，就老实说没有，不会另外编一道。
 
-## 路线图
+```mermaid
+flowchart TD
+  A[点问餐] --> B[preference/warmup<br/>只读偏好进会话]
+  B --> C[说出食材或口味]
+  C --> D[理解本轮意图]
+  D --> E{点名菜系/种类/病情?}
+  E -->|有| F[字段精确过滤]
+  E -->|没有| G[已发布全集内候选]
+  F --> H{还有模糊词如清淡?}
+  G --> H
+  H -->|有| I[稠密向量 + BM25<br/>RRF 合并]
+  H -->|没有| J[主料硬门槛排序]
+  I --> J
+  J --> K[通过主料的候选<br/>500ms 内 Rerank]
+  K --> L[最多三道 + 做法]
+```
 
-按 [`V0.1 分阶段施工方案`](docs/superpowers/plans/2026-11-10-V0.1分阶段施工方案.md) 推进：
+### 检索怎么分路
 
-- [x] P0：工程骨架、统一返回、幂等、患者引用、CI
-- [x] P1：画像、安全、目标、食材营养复算
-- [x] P2：无模型确定性配餐 MVP
-- [x] P3：识别草稿、SSE、按计划烹饪
-- [x] P4：动态调整、解馋、效果评价
-- [x] P5：专业目标、Kill Switch、k6 脚本与放行清单（合入前仍须环境验收）
+| 路径 | 何时用 | 说明 |
+| --- | --- | --- |
+| 标量 filter | 川菜、汤、减肥、控糖等 | 精确字段；miss 不降级乱推 |
+| 稠密向量 | 「清淡一点」等对不上字段的话 | `search`，COSINE |
+| BM25 | 同上 | 优先 Milvus `searchText`；库未就绪则进程内 chunk BM25 |
+| 多路融合 | 向量与词都有结果 | RRF；有 filter 时词只在向量结果内重排 |
+| Rerank | 主料已通过之后 | 百炼 `gte-rerank-v2`；超时/失败保持规则序 |
+
+写入已发布菜时，正文进 Milvus `content`，稠密向量进 `embedding`。远端 Milvus 若仍是 2.3.x，建表会降级为「稠密 + content」，库内 BM25 等运维升到 **≥2.5** 后 drop + 重灌即可打开。
+
+### 记忆怎么记
+
+忌口、改口等规则写同步落库。口味类可由模型异步抽取，**失败不影响本轮出菜**，下一轮预热后再带上。绝对忌口仍走同步规则。
+
+## 本地怎么跑
+
+JDK 21，本机 MySQL 库 `nutritionist`，再加 Redis。密钥写在不进 git 的 `config/application-local.yml`（可对照 `application-local.example.yml`）。
+
+```text
+mvn -B -pl nutritionist-service -am test
+mvn -B -pl nutritionist-service -am spring-boot:run
+```
+
+服务默认 `18091`。向量真库冒烟（可选）：
+
+```text
+mvn -pl nutritionist-service "-Dtest=RecipeVectorLiveSmokeIT" "-Drecipe.vector.smoke=true" test
+```
+
+Milvus 升到 2.5+ 并换新构建后，重建集合可调：
+
+`POST /api/nutrition/catalog/vectors/reseed`（需 `Idempotency-Key`）
+
+## 仓库里有什么
+
+```text
+nutritionist-api/          对外契约
+nutritionist-service/      问餐、推荐、目录、向量索引
+docs/方案                  食材推荐产品方案（权威）
+docs/superpowers/specs/    问餐、记忆、检索设计
+docs/superpowers/plans/    施工与放行清单
+```
+
+要对照源码时，从这些地方看起：
+
+- `DialogueController` / 问餐 SSE：每一轮怎么走
+- `DishRecommendService`：召回、主料门槛、Rerank
+- `MilvusRecipeIndex` / `RecipeVectorUpload`：写入与重灌
+- `HybridRecall` / `PassedRerank`：RRF 与超时预算
+- `PreferenceWarmup` / 记忆写入：预热与异步不堵问餐
+
+## 权威文档
+
+- 食材推荐回合：[`docs/方案`](docs/方案)
+- 问餐完整方案：[`docs/superpowers/specs/2026-11-18-问餐对话企业级完整方案-design.md`](docs/superpowers/specs/2026-11-18-问餐对话企业级完整方案-design.md)
+- 上线验收线：[`docs/superpowers/specs/2026-11-18-问餐企业级上线验收线.md`](docs/superpowers/specs/2026-11-18-问餐企业级上线验收线.md)
+- 产品基线：[`docs/superpowers/specs/2026-11-10-慢病与减重食材推荐系统设计.md`](docs/superpowers/specs/2026-11-10-慢病与减重食材推荐系统设计.md)
+- V0.1 放行：[`docs/superpowers/plans/2026-11-10-V0.1放行检查清单.md`](docs/superpowers/plans/2026-11-10-V0.1放行检查清单.md)
+
+## 还没接上的 / 运维收尾
+
+- [x] V0.1 P0～P5 软件主链路
+- [x] 问餐 warmup、SSE 门禁、记忆同步/异步拆分
+- [x] 稠密检索、BM25 契约、RRF、百炼 Rerank、reseed
+- [ ] Milvus 升到 ≥2.5 后 drop + 全量重灌（打开库内 BM25）
+- [ ] 生产钥匙、真环境 Accept 冒烟与压测（放行清单）
 
 ## 声明
 

@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.function.Consumer;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,7 @@ public class DishCardCache {
     private final StringRedisTemplate redis;
     private final Consumer<String> deleted;
 
+    @Autowired
     public DishCardCache(ObjectProvider<StringRedisTemplate> redis) {
         this.redis = redis.getIfAvailable();
         this.deleted = null;

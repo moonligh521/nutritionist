@@ -2,10 +2,8 @@ package com.moonligh.nutritionist.domain.recommend;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.moonligh.nutritionist.domain.recommend.IngredientDishRanker.Dish;
@@ -60,29 +58,29 @@ public final class HybridRecall {
         return rrf(rankings, CANDIDATE_LIMIT);
     }
 
-    /** 召回为空或对不上菜号时，退回全部已发布菜，再做主料门槛。 */
+    /**
+     * 与已发布目录求交。
+     * recalledIds 空或无交集 → 空列表（禁止经此方法退全库；全库由调用方显式分支）。
+     */
     public static List<Dish> pool(List<Dish> dishes, List<String> recalledIds) {
-        if (dishes == null || dishes.isEmpty() || recalledIds == null || recalledIds.isEmpty()) {
-            return dishes == null ? List.of() : dishes;
+        if (dishes == null || dishes.isEmpty()) {
+            return List.of();
+        }
+        if (recalledIds == null || recalledIds.isEmpty()) {
+            return List.of();
         }
         Set<String> wanted = new LinkedHashSet<>(recalledIds);
-        List<Dish> kept = dishes.stream().filter(dish -> wanted.contains(dish.id())).toList();
-        return kept.isEmpty() ? dishes : kept;
+        return dishes.stream().filter(dish -> wanted.contains(dish.id())).toList();
     }
 
     static List<String> rrf(List<List<String>> rankings, int limit) {
-        Map<String, Double> scores = new HashMap<>();
+        IdScoreBoard scores = new IdScoreBoard();
         for (List<String> ranking : rankings) {
             for (int index = 0; index < ranking.size(); index++) {
-                String id = ranking.get(index);
-                scores.merge(id, 1.0 / (RRF_K + index + 1), Double::sum);
+                scores.add(ranking.get(index), 1.0 / (RRF_K + index + 1));
             }
         }
-        return scores.entrySet().stream()
-                .sorted(Map.Entry.<String, Double>comparingByValue().reversed().thenComparing(Map.Entry::getKey))
-                .limit(limit)
-                .map(Map.Entry::getKey)
-                .toList();
+        return scores.topIds(limit);
     }
 
     private static List<String> bm25(String query, List<Chunk> chunks) {
@@ -95,11 +93,9 @@ public final class HybridRecall {
         if (average == 0) {
             return List.of();
         }
-        Map<String, Integer> documentFrequency = new HashMap<>();
+        TokenFrequency documentFrequency = new TokenFrequency();
         for (List<String> doc : docs) {
-            for (String token : new LinkedHashSet<>(doc)) {
-                documentFrequency.merge(token, 1, Integer::sum);
-            }
+            documentFrequency.incrementAll(new LinkedHashSet<>(doc));
         }
         List<Scored> scored = new ArrayList<>();
         int total = docs.size();
@@ -117,21 +113,19 @@ public final class HybridRecall {
             List<String> queryTokens,
             List<String> doc,
             double average,
-            Map<String, Integer> documentFrequency,
+            TokenFrequency documentFrequency,
             int total) {
         double k1 = 1.2;
         double b = 0.75;
-        Map<String, Integer> counts = new HashMap<>();
-        for (String token : doc) {
-            counts.merge(token, 1, Integer::sum);
-        }
+        TokenFrequency counts = new TokenFrequency();
+        counts.incrementAll(doc);
         double score = 0;
         for (String token : queryTokens) {
-            int count = counts.getOrDefault(token, 0);
+            int count = counts.of(token);
             if (count == 0) {
                 continue;
             }
-            int df = documentFrequency.getOrDefault(token, 0);
+            int df = documentFrequency.of(token);
             double idf = Math.log(1 + (total - df + 0.5) / (df + 0.5));
             double numerator = count * (k1 + 1);
             double denominator = count + k1 * (1 - b + b * doc.size() / average);

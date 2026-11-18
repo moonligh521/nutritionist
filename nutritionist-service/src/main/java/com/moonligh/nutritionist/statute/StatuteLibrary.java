@@ -1,8 +1,6 @@
 package com.moonligh.nutritionist.statute;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
@@ -11,17 +9,29 @@ import com.moonligh.consult.framework.vector.VectorDocument;
 import com.moonligh.consult.framework.vector.VectorStore;
 import com.moonligh.nutritionist.infrastructure.persistence.StatuteArticleMapper;
 import com.moonligh.nutritionist.infrastructure.persistence.StatuteArticleMapper.ArticleRow;
+import com.moonligh.nutritionist.infrastructure.vector.NamedField;
+import com.moonligh.nutritionist.infrastructure.vector.NamedField.FieldDescription;
 
 /** 法条入库和查询。先按条号，再按关键词，最后才用向量。废止条文不参与当前查询。 */
 @Service
 public class StatuteLibrary {
 
-    public static final String COLLECTION = "statute_article";
+    /** 企业命名：{域}_{对象}。旧名 statute_article 不再写入。 */
+    public static final String COLLECTION = "law_article";
 
-    private static final Map<String, String> ALIASES = Map.of(
-            "民法典", "中华人民共和国民法典",
-            "刑法", "中华人民共和国刑法",
-            "公司法", "中华人民共和国公司法");
+    public static final String COLLECTION_DESCRIPTION = "现行有效法条；按条切分，1024 维余弦检索";
+
+    private static final List<FieldDescription> FIELD_DESCRIPTIONS = List.of(
+            new FieldDescription("id", "法条主键，法规名+条号"),
+            new FieldDescription("law_name", "法规正式名称"),
+            new FieldDescription("status", "时效：有效/尚未生效/已废止"),
+            new FieldDescription("article_no", "条号原文"),
+            new FieldDescription("embedding", "百炼 qwen3-vl-embedding，1024 维，余弦"));
+
+    private static final List<LawAlias> ALIASES = List.of(
+            new LawAlias("民法典", "中华人民共和国民法典"),
+            new LawAlias("刑法", "中华人民共和国刑法"),
+            new LawAlias("公司法", "中华人民共和国公司法"));
 
     private final StatuteArticleMapper articles;
     private final VectorStore vectors;
@@ -45,11 +55,18 @@ public class StatuteLibrary {
                     article.articleNo(), StatuteNumbers.parse(article.articleNo()), article.path(), article.text());
             articles.upsert(row);
             if ("有效".equals(validity)) {
-                Map<String, String> fields = new LinkedHashMap<>();
-                fields.put("law_name", name);
-                fields.put("status", validity);
-                fields.put("article_no", article.articleNo());
-                vectors.save(new VectorDocument(COLLECTION, id, fields, article.text()));
+                List<NamedField> fields = NamedField.of(
+                        new NamedField("law_name", name),
+                        new NamedField("status", validity),
+                        new NamedField("article_no", article.articleNo()));
+                vectors.save(new VectorDocument(
+                        COLLECTION,
+                        id,
+                        NamedField.toMap(fields),
+                        article.text(),
+                        null,
+                        COLLECTION_DESCRIPTION,
+                        NamedField.descriptionsToMap(FIELD_DESCRIPTIONS)));
             }
         }
         return new ImportResult(name, validity, chunks.size());
@@ -91,7 +108,12 @@ public class StatuteLibrary {
             return "";
         }
         String name = lawName.trim().replace("《", "").replace("》", "");
-        return ALIASES.getOrDefault(name, name);
+        for (LawAlias alias : ALIASES) {
+            if (alias.shortName().equals(name)) {
+                return alias.officialName();
+            }
+        }
+        return name;
     }
 
     private static String id(String lawName, String articleNo) {

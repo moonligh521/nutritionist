@@ -60,6 +60,16 @@ consult:
       - /actuator/health/readiness
     open-path-prefixes: []
     staff-only-prefixes: []
+  # 与挂号同一套 Langfuse 项目；密钥只写 application-local.yml
+  observability:
+    enabled: true
+    capture-payloads: true
+    langfuse:
+      public-url: http://117.72.43.169:3000
+      project-id: consult-agent
+      retention-days: 30
+      public-key: ""
+      secret-key: ""
   redisson:
     enabled: true
   vector:
@@ -69,6 +79,10 @@ consult:
     api-key: ""
     base-url: https://dashscope.aliyuncs.com
     model: qwen3-vl-embedding
+    rerank-model: gte-rerank-v2
+    rerank-enabled: true
+    # 与 PassedRerank.BUDGET_MS 对齐；超时回退规则序
+    rerank-timeout-ms: 500
 
 model:
   api-key: ""
@@ -76,13 +90,26 @@ model:
   model-name: deepseek-v4-pro
   timeout-ms: 2000
   acquire-wait-ms: 200
-  # 主模型超时重试一次。还超时调用兜底模型。再超时由代码按食材规则给出，或只提示。
-  # 兜底模型名留空表示还没接。密钥留空则沿用上面的密钥。真实密钥写在 application-local.yml。
+  # 主模型超时后再打主模型的次数；0=不重试。TwoModelChain 读取此配置。
+  timeout-retries: 1
+  # 单回合模型墙钟预算（毫秒）；编排层可用来跳过后续抽取。
+  turn-deadline-ms: 12000
+  # 主模型仍超时则调用兜底；名称为空则走食材规则。密钥空则沿用主密钥。
   fallback-model-name: ""
   fallback-base-url: ""
   fallback-api-key: ""
 
 nutritionist:
+  recall:
+    degrade:
+      # 软约束可降（NO_FEASIBLE 可去菜系）；点名菜系 SCALAR_EMPTY 仍 fail-closed
+      enabled: true
+    rerank:
+      # 主料硬过滤后的百炼重排；失败/超时不挡主链路
+      enabled: true
+  # 异步补 chunk；测试/本地默认关，避免启动卡死远程全表
+  chunk-seeder:
+    enabled: false
   clinical-record:
     base-url: ${CLINICAL_RECORD_URL:}
     token: ${CLINICAL_RECORD_TOKEN:consult-internal}
@@ -99,7 +126,22 @@ nutritionist:
       role: patient
 
 management:
-
+  otlp:
+    metrics:
+      export:
+        # 避免默认打 localhost:4318 刷屏；traces 走下方 Collector
+        enabled: false
+  tracing:
+    export:
+      enabled: true
+    sampling:
+      probability: 1.0
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          # 与挂号共用测试机 Collector → Langfuse
+          endpoint: http://117.72.43.169:4318/v1/traces
   endpoints:
     web:
       exposure:

@@ -21,15 +21,15 @@ class IngredientMatchEvaluationTest {
     private static final Ingredient OIL = new Ingredient("654", "菜籽油", true);
 
     private final List<Dish> corpus = List.of(
-            new Dish("wl-egg-tomato", "番茄炒蛋", 250, "步骤", List.of(EGG, TOMATO), List.of(OIL)),
-            new Dish("wl-boiled-egg", "水煮蛋", 72, "步骤", List.of(EGG), List.of()),
-            new Dish("wl-pork-carrot", "里脊炒胡萝卜", 200, "步骤", List.of(BEEF), List.of(OIL)));
+            new Dish("7", "番茄炒蛋", 250, "步骤", List.of(EGG, TOMATO), List.of(OIL)),
+            new Dish("17", "水煮蛋", 72, "步骤", List.of(EGG), List.of()),
+            new Dish("10", "里脊炒胡萝卜", 200, "步骤", List.of(BEEF), List.of(OIL)));
 
     @Test
     void goldSetKeepsPrecisionAndRecallAtOne() {
         List<Case> cases = List.of(
-                new Case(Set.of("580", "138"), Set.of("wl-egg-tomato", "wl-boiled-egg")),
-                new Case(Set.of("352"), Set.of("wl-pork-carrot")),
+                new Case(Set.of("580", "138"), Set.of("7", "17")),
+                new Case(Set.of("352"), Set.of("10")),
                 new Case(Set.of("138"), Set.of()),
                 new Case(Set.of(), Set.of()));
         int returned = 0;
