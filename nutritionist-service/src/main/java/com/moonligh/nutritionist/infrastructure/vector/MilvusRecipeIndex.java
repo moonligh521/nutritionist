@@ -11,14 +11,15 @@ import com.moonligh.nutritionist.domain.recommend.RecipeVectorizer;
 import com.moonligh.nutritionist.infrastructure.vector.NamedField.FieldDescription;
 import com.moonligh.nutritionist.infrastructure.vector.NamedField.NamedStringList;
 
-/** 菜谱集合。切分是一行一道菜。向量化和查询交给公共模块。 */
+/** 菜谱集合。切分是一行一道菜。稠密向量 + BM25 文本检索交给公共模块。 */
 @Component
 public class MilvusRecipeIndex {
 
     /** 企业命名：{域}_{对象}。旧名 recipe_chunk 不再写入。 */
     public static final String COLLECTION = "nutrition_recipe";
 
-    public static final String COLLECTION_DESCRIPTION = "营养服务已发布菜谱；一行一道菜，1024 维余弦检索";
+    public static final String COLLECTION_DESCRIPTION =
+            "营养服务已发布菜谱；一行一道菜，1024 维余弦 + content BM25";
 
     private static final List<FieldDescription> FIELD_DESCRIPTIONS = List.of(
             new FieldDescription("id", "菜谱主键，对应 MySQL recipe.id 的数字字符串"),
@@ -29,6 +30,7 @@ public class MilvusRecipeIndex {
             new FieldDescription("prefer_tags", "偏好标签数组，array_contains 匹配"),
             new FieldDescription("suitable", "适合的病情标签数组"),
             new FieldDescription("unsuitable", "不适合的病情标签数组"),
+            new FieldDescription("content", "检索正文，BM25 输入"),
             new FieldDescription("embedding", "百炼 qwen3-vl-embedding，1024 维，余弦"));
 
     private final VectorStore vectors;
@@ -69,7 +71,16 @@ public class MilvusRecipeIndex {
         return vectors.search(COLLECTION, vector, filter, limit);
     }
 
+    /** Milvus BM25 单路；失败返回空。 */
+    public List<String> searchBm25(String text, String filter, int limit) {
+        return vectors.searchText(COLLECTION, text, filter, limit);
+    }
+
     public List<String> query(String filter, int limit) {
         return vectors.query(COLLECTION, filter, limit);
+    }
+
+    public void dropCollection() {
+        vectors.dropCollection(COLLECTION);
     }
 }

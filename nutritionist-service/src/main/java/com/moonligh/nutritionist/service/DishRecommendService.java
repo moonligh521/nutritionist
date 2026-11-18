@@ -13,10 +13,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.moonligh.consult.framework.observability.AgentSpan;
 import com.moonligh.consult.framework.observability.AgentTrace;
+import com.moonligh.consult.framework.vector.TextReranker;
 import com.moonligh.nutritionist.config.RecallDegradeProperties;
 import com.moonligh.nutritionist.domain.recommend.FoodAlias;
 import com.moonligh.nutritionist.domain.recommend.FoodNameLookup;
 import com.moonligh.nutritionist.domain.recommend.HybridRecall;
+import com.moonligh.nutritionist.domain.recommend.PassedRerank;
 import com.moonligh.nutritionist.domain.recommend.IngredientDishRanker;
 import com.moonligh.nutritionist.domain.recommend.RecipeCardPayload;
 import com.moonligh.nutritionist.domain.recommend.RecipeCardPayload.IngredientLine;
@@ -54,6 +56,8 @@ public class DishRecommendService {
     private final RecallMetrics metrics;
     private final AgentTrace agentTrace;
     private final RecallDegradeLadder degradeLadder;
+    private final TextReranker reranker;
+    private final boolean rerankEnabled;
     private final ObjectMapper json = new ObjectMapper();
 
     public DishRecommendService(
@@ -62,7 +66,7 @@ public class DishRecommendService {
             SearchChunkMapper chunks,
             RecipeVectorizer.TextEmbedding embedding,
             MilvusRecipeIndex vectors) {
-        this(new PublishedCatalogIndex(catalog), cards, new SearchChunkIndex(chunks), embedding, vectors, null, null, null);
+        this(new PublishedCatalogIndex(catalog), cards, new SearchChunkIndex(chunks), embedding, vectors, null, null, null, null, true);
     }
 
     public DishRecommendService(
@@ -72,7 +76,7 @@ public class DishRecommendService {
             RecipeVectorizer.TextEmbedding embedding,
             MilvusRecipeIndex vectors,
             RecallMetrics metrics) {
-        this(new PublishedCatalogIndex(catalog), cards, new SearchChunkIndex(chunks), embedding, vectors, metrics, null, null);
+        this(new PublishedCatalogIndex(catalog), cards, new SearchChunkIndex(chunks), embedding, vectors, metrics, null, null, null, true);
     }
 
     @Autowired
@@ -84,7 +88,9 @@ public class DishRecommendService {
             MilvusRecipeIndex vectors,
             RecallMetrics metrics,
             ObjectProvider<AgentTrace> agentTrace,
-            ObjectProvider<RecallDegradeLadder> degradeLadder) {
+            ObjectProvider<RecallDegradeLadder> degradeLadder,
+            ObjectProvider<TextReranker> reranker,
+            @org.springframework.beans.factory.annotation.Value("${nutritionist.recall.rerank.enabled:true}") boolean rerankEnabled) {
         this.index = index;
         this.cards = cards;
         this.chunkIndex = chunkIndex;
@@ -95,6 +101,8 @@ public class DishRecommendService {
         this.degradeLadder = degradeLadder == null
                 ? new RecallDegradeLadder(new RecallDegradeProperties())
                 : degradeLadder.getIfAvailable(() -> new RecallDegradeLadder(new RecallDegradeProperties()));
+        this.reranker = reranker == null ? null : reranker.getIfAvailable(() -> null);
+        this.rerankEnabled = rerankEnabled;
     }
 
     /** 只做词到编号的对照，不判断能不能做菜。对不上的词留在 unrecognized。 */
@@ -201,6 +209,7 @@ public class DishRecommendService {
                             .filter(match -> verify(owned, match))
                             .toList();
                     suggestions = ranked.stream().map(this::suggestion).toList();
+                    suggestions = applyRerank(attempt.fuzzyText(), suggestions);
                     rankSpan.attr("ranked_count", suggestions.size());
                 }
                 degradeStep = step;
@@ -330,7 +339,7 @@ public class DishRecommendService {
         } catch (RuntimeException error) {
             embedFailed = true;
         }
-        List<String> byWord = HybridRecall.recall(fuzzyText, stored, null);
+        List<String> byWord = milvusBm25OrLocal(fuzzyText, filter, stored);
         List<String> byVector = List.of();
         if (!embedFailed && vectors != null && query != null) {
             byVector = vectors.search(query, hasFilter ? filter : null, HybridRecall.CANDIDATE_LIMIT);
@@ -357,7 +366,7 @@ public class DishRecommendService {
         }
 
         List<String> merged = byVector.isEmpty()
-                ? HybridRecall.recall(fuzzyText, stored, query)
+                ? (byWord.isEmpty() ? HybridRecall.recall(fuzzyText, stored, query) : byWord)
                 : HybridRecall.merge(byWord, byVector);
         if (merged == null || merged.isEmpty()) {
             return NarrowResult.fallback(catalogView.dishes(), filter == null ? "" : filter);
@@ -367,6 +376,52 @@ public class DishRecommendService {
             return NarrowResult.fallback(catalogView.dishes(), filter == null ? "" : filter);
         }
         return new NarrowResult(pooled, RecallEmptyReason.NONE, filter == null ? "" : filter, merged.size());
+    }
+
+    /** 优先 Milvus BM25；空则回落进程内 chunk BM25。 */
+    private List<String> milvusBm25OrLocal(String fuzzyText, String filter, List<HybridRecall.Chunk> stored) {
+        if (vectors != null && fuzzyText != null && !fuzzyText.isBlank()) {
+            List<String> fromMilvus = vectors.searchBm25(
+                    fuzzyText, filter == null || filter.isBlank() ? null : filter, HybridRecall.CANDIDATE_LIMIT);
+            if (fromMilvus != null && !fromMilvus.isEmpty()) {
+                return fromMilvus;
+            }
+        }
+        return HybridRecall.recall(fuzzyText, stored, null);
+    }
+
+    /** 主料硬过滤后的候选才允许模型重排；超时/失败保持规则序。 */
+    private List<Suggestion> applyRerank(String query, List<Suggestion> suggestions) {
+        if (!rerankEnabled || reranker == null || suggestions == null || suggestions.isEmpty()
+                || query == null || query.isBlank()) {
+            return suggestions == null ? List.of() : suggestions;
+        }
+        List<String> ids = suggestions.stream().map(Suggestion::id).toList();
+        List<String> texts = suggestions.stream()
+                .map(item -> (item.name() == null ? "" : item.name()) + " " + (item.reason() == null ? "" : item.reason()))
+                .toList();
+        List<String> ordered = PassedRerank.withinBudget(
+                ids,
+                () -> {
+                    List<String> hit = reranker.rerank(query, ids, texts, ids.size());
+                    return hit == null || hit.isEmpty() ? ids : hit;
+                },
+                PassedRerank.BUDGET_MS);
+        if (ordered == null || ordered.isEmpty() || ordered.equals(ids)) {
+            return suggestions;
+        }
+        java.util.Map<String, Suggestion> byId = new java.util.LinkedHashMap<>();
+        for (Suggestion item : suggestions) {
+            byId.put(item.id(), item);
+        }
+        List<Suggestion> reordered = new ArrayList<>();
+        for (String id : ordered) {
+            Suggestion item = byId.get(id);
+            if (item != null) {
+                reordered.add(item);
+            }
+        }
+        return reordered.size() == suggestions.size() ? reordered : suggestions;
     }
 
     private static List<Dish> dishesOf(View catalogView, List<String> ids) {

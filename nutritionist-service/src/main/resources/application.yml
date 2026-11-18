@@ -79,6 +79,10 @@ consult:
     api-key: ""
     base-url: https://dashscope.aliyuncs.com
     model: qwen3-vl-embedding
+    rerank-model: gte-rerank-v2
+    rerank-enabled: true
+    # 与 PassedRerank.BUDGET_MS 对齐；超时回退规则序
+    rerank-timeout-ms: 500
 
 model:
   api-key: ""
@@ -99,6 +103,9 @@ nutritionist:
   recall:
     degrade:
       # 软约束可降（NO_FEASIBLE 可去菜系）；点名菜系 SCALAR_EMPTY 仍 fail-closed
+      enabled: true
+    rerank:
+      # 主料硬过滤后的百炼重排；失败/超时不挡主链路
       enabled: true
   # 异步补 chunk；测试/本地默认关，避免启动卡死远程全表
   chunk-seeder:

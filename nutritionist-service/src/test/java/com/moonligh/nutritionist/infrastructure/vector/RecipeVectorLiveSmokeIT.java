@@ -95,6 +95,11 @@ class RecipeVectorLiveSmokeIT {
                 MilvusRecipeIndex.COLLECTION, vector, "cuisine == \"川菜\"", 10);
         assertFalse(byVector.isEmpty(), "带过滤的向量检索应有结果");
         assertTrue(byVector.contains(id) || byVector.size() > 0);
+
+        List<String> byBm25 = store.searchText(MilvusRecipeIndex.COLLECTION, "清淡", null, 10);
+        // 库内 BM25 需 Milvus ≥2.5；当前 2.3 时空返回并由进程内 BM25 降级
+        assumeTrue(!byBm25.isEmpty(), "Milvus 库内 BM25 不可用（需 ≥2.5）；稠密/标量已通过");
+        assertTrue(byBm25.contains(id), "BM25 应命中冒烟菜");
     }
 
     private static String capture(String text, String pattern) {
